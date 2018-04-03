@@ -21,23 +21,23 @@ MicroInverse is a Python package for inversion of a transport operator from trac
 It is based on the simple stochastic climate model approximation
 
 .. math:: 
-   \\frac{d}{dt} \\mathbf{x}(t) = \\mathbf{B}\\mathbf{x}(t) + \\mathbf{f}(t)
+   \frac{d}{dt} \mathbf{x}(t) = \mathbf{B}\mathbf{x}(t) + \mathbf{f}(t)
 
-Where :math:`\\mathbf{x}(t)` is the vector of tracer anomaly timeseries,  :math:`\\mathbf{B}` is the transport operator, and 
-:math:`\\mathbf{f}(t)` is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
+Where :math:`\mathbf{x}(t)` is the vector of tracer anomaly timeseries,  :math:`\mathbf{B}` is the transport operator, and 
+:math:`\mathbf{f}(t)` is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
 the tracer we can solve for the transport operator:
 
 .. math:: 
    
-   \\mathbf{B}=\\frac{1}{\\tau}\\log \\left(\\left[ \\mathbf{x}(t+\\tau)\\mathbf{x}^T(t)\\right ] \\left[ \\mathbf{x}(t)\\mathbf{x}^T(t) \\right]^{-1}\\right).
+   \mathbf{B}=\frac{1}{\tau}\log \left(\left[ \mathbf{x}(t+\tau)\mathbf{x}^T(t)\right ] \left[ \mathbf{x}(t)\mathbf{x}^T(t) \right]^{-1}\right).
 
-Where :math:`\\tau` is the chosen decorrelation timescale which should be larger than the forcing decorrelation timescale, 
+Where :math:`\tau` is the chosen decorrelation timescale which should be larger than the forcing decorrelation timescale, 
 but smaller than the decorrelation timescale of the tracer. 
 
-In practice :math:`\\tau` is hard to choose a priori which is why we suggest first inverting your data at multiple values 
-of :math:`\\tau` and combining the results afterwards using MicroInverse.combine_Taus().
+In practice :math:`\tau` is hard to choose a priori which is why we suggest first inverting your data at multiple values 
+of :math:`\tau` and combining the results afterwards using MicroInverse.combine_Taus().
 
-MicroInverse will also relate :math:`\\mathbf{B}` to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
+MicroInverse will also relate :math:`\mathbf{B}` to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
 
 * Free software: MIT license
 * Documentation: https://MicroInverse.readthedocs.io.
