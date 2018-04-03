@@ -1,3 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""Main module."""
+"""Main module. Here we simply """
+
+import MicroInverse_utils as mutils
