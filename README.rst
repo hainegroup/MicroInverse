@@ -16,7 +16,7 @@ MicroInverse
 
 
 
-MicroInverse is a Python package for inversion of a transport operator from tracer d.
+MicroInverse is a Python package for inversion of a transport operator from tracer data.
 
 
 * Free software: MIT license
