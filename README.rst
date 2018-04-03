@@ -31,6 +31,13 @@ Features
 Credits
 -------
 
+This package is based on work by `Nummelin et al. (2018)`__ and Jeffress and Haine (2014a_, 2014b_)
+
+.. _Nummelin: http://pages.jh.edu/~anummel1/
+__ Nummelin_
+.. _2014a: https://doi.org/10.1002/qj.2313
+.. _2014b: https://doi.org/10.1088/1367-2630/16/10/105001 
+
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
