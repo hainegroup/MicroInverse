@@ -5,26 +5,11 @@ Installation
 ============
 
 
-Stable release
---------------
-
-To install MicroInverse, run this command in your terminal:
-
-.. code-block:: console
-
-    $ pip install MicroInverse
-
-This is the preferred method to install MicroInverse, as it will always install the most recent stable release.
-
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
-
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
-
 From sources
 ------------
+
+At this point this is the main method of obtaining MicroInverse. 
+PyPi release will be available once the code is in shape for that.
 
 The sources for MicroInverse can be downloaded from the `Github repo`_.
 
@@ -49,3 +34,21 @@ Once you have a copy of the source, you can install it with:
 
 .. _Github repo: https://github.com/AleksiNummelin/MicroInverse
 .. _tarball: https://github.com/AleksiNummelin/MicroInverse/tarball/master
+
+Stable release
+--------------
+
+At present MicroInverse is still at its development phase and not hosted by PyPi. 
+Once it will be available you can install MicroInverse, by running this command in your terminal:
+
+.. code-block:: console
+
+    $ pip install MicroInverse
+
+.. This is the preferred method to install MicroInverse, as it will always install the most recent stable release.
+
+If you don't have `pip`_ installed, this `Python installation guide`_ can guide
+you through the process.
+
+.. _pip: https://pip.pypa.io
+.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
