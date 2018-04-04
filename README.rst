@@ -22,25 +22,20 @@ It is based on the simple stochastic climate model approximation
 
 .. image:: http://latex.codecogs.com/gif.latex?%5Cfrac%7Bd%7D%7Bdt%7D%20%5Cmathbf%7Bx%7D%28t%29%20%3D%20%5Cmathbf%7BB%7D%5Cmathbf%7Bx%7D%28t%29%20&plus;%20%5Cmathbf%7Bf%7D%28t%29
 
-.. math:: 
-   \\frac{d}{dt} \\mathbf{x}(t) = \\mathbf{B}\\mathbf{x}(t) + \\mathbf{f}(t)
 
-Where :math:`\\mathbf{x}(t)` is the vector of tracer anomaly timeseries,  :math:`\\mathbf{B}` is the transport operator, and 
-:math:`\\mathbf{f}(t)` is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
+Where **x**(t) is the vector of tracer anomaly timeseries, **B** is the transport operator, and **f**(t)
+ is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
 the tracer we can solve for the transport operator:
 
-.. math:: 
-   
-   \\mathbf{B}=\\frac{1}{\\tau}\\log \\left(\\left[ \\mathbf{x}(t+\\tau)\mathbf{x}^T(t)\\right ] \\ 
-   \\left[ \\mathbf{x}(t)\\mathbf{x}^T(t) \\right]^{-1}\\right).
+.. image:: http://latex.codecogs.com/gif.latex?%5Cmathbf%7BB%7D%3D%5Cfrac%7B1%7D%7B%5Ctau%7D%5Clog%20%5Cleft%28%5Cleft%5B%20%5Cmathbf%7Bx%7D%28t&plus;%5Ctau%29%5Cmathbf%7Bx%7D%5ET%28t%29%5Cright%20%5D%20%5C%20%5Cleft%5B%5Cmathbf%7Bx%7D%28t%29%5Cmathbf%7Bx%7D%5ET%28t%29%20%5Cright%5D%5E%7B-1%7D%5Cright%29
 
-Where :math:`\\tau` is the chosen decorrelation timescale which should be larger than the forcing decorrelation timescale, 
+Where tau is the chosen decorrelation timescale which should be larger than the forcing decorrelation timescale, 
 but smaller than the decorrelation timescale of the tracer. 
 
-In practice :math:`\\tau` is hard to choose a priori which is why we suggest first inverting your data at multiple values 
-of :math:`\\tau` and combining the results afterwards using MicroInverse.combine_Taus().
+In practice tau is hard to choose a priori which is why we suggest first inverting your data at multiple values 
+of tau and combining the results afterwards using MicroInverse.combine_Taus().
 
-MicroInverse will also relate :math:`\\mathbf{B}` to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
+MicroInverse will also relate **B** to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
 
 * Free software: MIT license
 * Documentation: https://MicroInverse.readthedocs.io.
