@@ -22,9 +22,8 @@ It is based on the simple stochastic climate model approximation
 
 .. image:: http://latex.codecogs.com/gif.latex?%5Cfrac%7Bd%7D%7Bdt%7D%20%5Cmathbf%7Bx%7D%28t%29%20%3D%20%5Cmathbf%7BB%7D%5Cmathbf%7Bx%7D%28t%29%20&plus;%20%5Cmathbf%7Bf%7D%28t%29
 
-
-Where **x** is the vector of tracer anomaly timeseries, **B** is the transport operator, and **f**
- is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
+Where **x** is the vector of tracer anomaly timeseries, **B** is the transport operator, and **f** is 
+the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
 the tracer we can solve for the transport operator:
 
 .. image:: http://latex.codecogs.com/gif.latex?%5Cmathbf%7BB%7D%3D%5Cfrac%7B1%7D%7B%5Ctau%7D%5Clog%20%5Cleft%28%5Cleft%5B%20%5Cmathbf%7Bx%7D%28t&plus;%5Ctau%29%5Cmathbf%7Bx%7D%5ET%28t%29%5Cright%20%5D%20%5C%20%5Cleft%5B%5Cmathbf%7Bx%7D%28t%29%5Cmathbf%7Bx%7D%5ET%28t%29%20%5Cright%5D%5E%7B-1%7D%5Cright%29
