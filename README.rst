@@ -20,6 +20,8 @@ MicroInverse is a Python package for inversion of a transport operator from trac
 
 It is based on the simple stochastic climate model approximation
 
+![stochastic climate model](http://latex.codecogs.com/gif.latex?%5Cfrac%7Bd%7D%7Bdt%7D%20%5Cmathbf%7Bx%7D%28t%29%20%3D%20%5Cmathbf%7BB%7D%5Cmathbf%7Bx%7D%28t%29%20&plus;%20%5Cmathbf%7Bf%7D%28t%29)
+
 .. math:: 
    \\frac{d}{dt} \\mathbf{x}(t) = \\mathbf{B}\\mathbf{x}(t) + \\mathbf{f}(t)
 
