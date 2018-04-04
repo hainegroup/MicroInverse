@@ -7,5 +7,8 @@ tox==2.9.1
 coverage==4.5.1
 Sphinx==1.7.1
 twine==1.10.0
-
+scipy==1.0.0
+numpy==1.14.2
+joblib==0.11
+xarray==0.10.2
 
