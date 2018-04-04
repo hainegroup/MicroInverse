@@ -697,7 +697,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
           #elif j==block_num_lons-1:
           #  jb =block_num_lons-2
           #
-          if DistType in ['mean']:
+          if DistType in ['mean'] and dx_const==None and dy_const==None:
             #USING MEAN DISTANCE
             ds=np.zeros(Stencil_size)
             for s,ss in enumerate(sads):
@@ -708,7 +708,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             #calculate the mean dx,dy along two major axes
             dx = ma.mean(ds[Stencil_center+np.array(sads[:2])])
             dy = ma.mean(ds[Stencil_center+np.array(sads[2:])])
-          elif DistType in ['interp']:
+          elif DistType in ['interp'] and dx_const==None and dy_const==None:
             #INTERPOLATED VERSION
             #Interpolate x_grid values to be at the same distance from the central point - this is because the inversion doesn't know about the distance.
             #first find the minimum distance - we will interpolate all the other points to be at this distance
@@ -994,7 +994,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
          R_0=np.array(block_vars1[4,1:-1,1:-1]).copy();
        #invert rotated version
        #Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars2,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=True, inversion_method=inversion_method) for j in range(1,block_num_lons-1))
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=True, block_vars2=block_vars2,inversion_method=inversion_method) for j in range(1,block_num_lons-1))
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=True, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean') for j in range(1,block_num_lons-1))
        U_1=np.array(block_vars1[0,1:-1,1:-1]).copy();
        V_1=np.array(block_vars1[1,1:-1,1:-1]).copy();
        Kx_1=np.array(block_vars1[2,1:-1,1:-1]).copy();
@@ -1053,7 +1053,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
        #Mn_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=x_grid_mean[1:-1,1:-1];
     elif not rotate:
        print 'no rotation'
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const) for j in range(1,block_num_lons-1))
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean') for j in range(1,block_num_lons-1))
        #Browsp = block_rows[1:-1];
        #Bcolsp = block_cols[1:-1];
        if False:
