@@ -5,11 +5,11 @@
 
 
 import unittest
-from click.testing import CliRunner
+#from click.testing import CliRunner
 
 from MicroInverse import mutils #MicroInverse
 from MicroInverse import run_examples
-from MicroInverse import cli
+#from MicroInverse import cli
 
 
 class TestMicroinverse(unittest.TestCase):
