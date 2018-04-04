@@ -23,7 +23,7 @@ It is based on the simple stochastic climate model approximation
 .. image:: http://latex.codecogs.com/gif.latex?%5Cfrac%7Bd%7D%7Bdt%7D%20%5Cmathbf%7Bx%7D%28t%29%20%3D%20%5Cmathbf%7BB%7D%5Cmathbf%7Bx%7D%28t%29%20&plus;%20%5Cmathbf%7Bf%7D%28t%29
 
 
-Where **x**(t) is the vector of tracer anomaly timeseries, **B** is the transport operator, and **f**(t)
+Where **x** is the vector of tracer anomaly timeseries, **B** is the transport operator, and **f**
  is the forcing of the system. Assyming that the forcing has a shorter decorrelation timescale than
 the tracer we can solve for the transport operator:
 
@@ -33,7 +33,7 @@ Where tau is the chosen decorrelation timescale which should be larger than the 
 but smaller than the decorrelation timescale of the tracer. 
 
 In practice tau is hard to choose a priori which is why we suggest first inverting your data at multiple values 
-of tau and combining the results afterwards using MicroInverse.combine_Taus().
+of tau and combining the results afterwards using MicroInverse.mutils.combine_Taus().
 
 MicroInverse will also relate **B** to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
 
