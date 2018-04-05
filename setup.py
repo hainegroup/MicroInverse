@@ -11,7 +11,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', ]
+requirements = ['Click>=6.0', 'scipy>=1.0.0', 'numpy>=1.14.2', 'joblib>=0.11', 
+'xarray>=0.10.2', 'matplotlib>=2.2.2']
 
 setup_requirements = [ ]
 
