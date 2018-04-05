@@ -49,8 +49,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 
-#lint: ## check style with flake8
-#	flake8 MicroInverse tests
+lint: ## check style with flake8
+	flake8 MicroInverse tests
 
 test: ## run tests quickly with the default Python
 	python setup.py test
