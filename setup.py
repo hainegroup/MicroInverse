@@ -27,12 +27,8 @@ setup(
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
     ],
-    description="MicroInverse is a Python package for inversion of a transport operator from tracer d.",
+    description="MicroInverse is a Python package for inversion of a transport operator from tracer data.",
     entry_points={
         'console_scripts': [
             'MicroInverse=MicroInverse.cli:main',
