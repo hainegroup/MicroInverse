@@ -7,16 +7,20 @@
 import unittest
 #from click.testing import CliRunner
 
-from MicroInverse import mutils #MicroInverse
-from MicroInverse import run_examples
+import MicroInverse
+#
+MicroInverse.run_example(['example1'])
+#
+#from MicroInverse import mutils #MicroInverse
+#from MicroInverse import run_examples
 #from MicroInverse import cli
-
-
-class TestMicroinverse(unittest.TestCase):
-    """Tests for `MicroInverse` package."""
-    
-    def test_000(self):
-        run_examples('running examples...')
+#
+#
+#class TestMicroinverse(unittest.TestCase):
+#    """Tests for `MicroInverse` package."""
+#    
+#    def test_000(self):
+#        run_examples('running examples...')
 
     #def setUp(self):
     #    """Set up test fixtures, if any."""
