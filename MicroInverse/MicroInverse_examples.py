@@ -1,5 +1,5 @@
 import numpy as np
-from MicroInverse import mutils
+from MicroInverse import MicroInverse_utils as mutils
 import matplotlib.pyplot as plt
 
 def run_examples(examples):
@@ -26,33 +26,33 @@ def run_examples(examples):
         #
         if example in ['example1']:
            print('running '+example)
-           #load the data - here we do not remove a mean or climatology (should be done for real data!!)
-           #because we know that the input follows advection-diffusion-relaxation equation without any
-           #forcing
+           # load the data - here we do not remove a mean or climatology (should be done for real data!!)
+           # because we know that the input follows advection-diffusion-relaxation equation without any
+           # forcing
            data=np.load('adv_diff_fipy_solve_1000_vel0.05_r005_dx5000_dt1000.npz')
            x_grid=data['x_grid'][:]
-           #size of the domain in grid size and 'real world'
+           # size of the domain in grid size and 'real world'
            nx=data['nx']
            ny=data['ny']
            nt=data['nt']
            dt=data['dt'] 
            dy=data['dy']
            dx=data['dx']
-           #indices, when dealing with datasets with nan's or masked values, these should include all the ocean points
+           # indices, when dealing with datasets with nan's or masked values, these should include all the ocean points
            yinds=range(ny)
            xinds=range(nx)
-           #create dummy lat,lon these will actually not be used because we provide constant dx and dy
+           # create dummy lat,lon these will actually not be used because we provide constant dx and dy
            lat=np.ones((ny,nx))
            lon=np.ones((ny,nx))
-           #parameters for the inversion
-           stencil_size   = 5 #five point stencil - the only option at this point
-           stencil_center = 2 #mid point index (python is 0 based) in a 5 point stencil
-           tau            = 1 #no forcing so we can safely choose lag=1
+           # parameters for the inversion
+           stencil_size   = 5 # five point stencil - the only option at this point
+           stencil_center = 2 # mid point index (python is 0 based) in a 5 point stencil
+           tau            = 1 # no forcing so we can safely choose lag=1
            num_cores      = 10 # let's do this on 10 cores 
            #
            for rotate in [False,True]:
                if rotate:
-                 #note that on a rotated stencil the grid cells are actually separated by sqrt(dx^2+dy^2)
+                 # note that on a rotated stencil the grid cells are actually separated by sqrt(dx^2+dy^2)
                  dx=dy=np.sqrt(dx**2+dy**2)
                  U,V,Kx,Ky,Kxy,Kyx,R,B=mutils.inversion(x_grid, yinds, xinds, lon, lat, nx, ny, nt, stencil_center, stencil_size, tau, dt, inversion_method='integral', dx_const=dx, dy_const=dy, b_9points=False, rotate=rotate, num_cores=num_cores)
                  #
