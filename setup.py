@@ -41,6 +41,9 @@ setup(
     keywords='MicroInverse',
     name='MicroInverse',
     packages=find_packages(include=['MicroInverse']),
+    package_data={
+      'MicroInverse': ['adv_diff_fipy_solve_1000_vel0.05_r005_dx5000_dt1000.npz']
+    },
     setup_requires=setup_requirements,
     test_suite='MicroInverse/tests',
     tests_require=test_requirements,
