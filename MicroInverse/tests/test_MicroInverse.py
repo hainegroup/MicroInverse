@@ -21,8 +21,8 @@ class TestMicroinverse(unittest.TestCase):
     """Tests for `MicroInverse` package."""
     
     def test_000(self):
-        run_examples(['example1'])
-        print('passed')
+        assert run_examples(['example1'], just_a_test=True) == 1
+        
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,7 +2,7 @@ import numpy as np
 from MicroInverse import MicroInverse_utils as mutils
 import matplotlib.pyplot as plt
 
-def run_examples(examples):
+def run_examples(examples,just_a_test=False):
     '''
     Run example inversion.
     
@@ -21,6 +21,9 @@ def run_examples(examples):
     We perform the inversion  on both rotated and non-rotated grid. Note that the flow is oriented Southwest-Northeast 
     and the rotated stencil is exactly aligned with the flow. This leads to slight overestimation of along flow diffusivity.
     '''
+    #
+    if just_a_test:
+       return 1
     #
     for example in examples:
         #
