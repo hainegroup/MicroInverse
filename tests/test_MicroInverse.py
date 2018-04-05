@@ -7,9 +7,9 @@
 import unittest
 #from click.testing import CliRunner
 
-import MicroInverse
+import MicroInverse.MicroInverse as mi
 #
-MicroInverse.run_examples(['example1'])
+mi.run_examples(['example1'])
 #
 #from MicroInverse import mutils #MicroInverse
 #from MicroInverse import run_examples
