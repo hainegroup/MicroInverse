@@ -12,7 +12,7 @@ import unittest
 #mi.run_examples(['example1'])
 #
 #from MicroInverse import mutils #MicroInverse
-from MicroInverse import run_examples
+from MicroInverse.MicroInverse_examples import run_examples
 #from MicroInverse import cli
 #
 #run_examples(['example1'])
