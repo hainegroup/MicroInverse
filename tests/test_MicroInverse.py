@@ -9,7 +9,7 @@ import unittest
 
 import MicroInverse
 #
-MicroInverse.run_example(['example1'])
+MicroInverse.run_examples(['example1'])
 #
 #from MicroInverse import mutils #MicroInverse
 #from MicroInverse import run_examples

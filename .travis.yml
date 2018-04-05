@@ -26,4 +26,4 @@ deploy:
   on:
     tags: true
     repo: AleksiNummelin/MicroInverse
-    python: 3.6
+    python: 2.7
