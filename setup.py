@@ -49,6 +49,6 @@ setup(
     test_suite='MicroInverse/tests',
     tests_require=test_requirements,
     url='https://github.com/AleksiNummelin/MicroInverse',
-    version='0.1.0',
+    version='0.2.0',
     zip_safe=False,
 )
