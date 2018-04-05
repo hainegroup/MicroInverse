@@ -42,7 +42,7 @@ setup(
     name='MicroInverse',
     packages=find_packages(include=['MicroInverse']),
     setup_requires=setup_requirements,
-    test_suite='tests',
+    test_suite='MicroInverse/tests',
     tests_require=test_requirements,
     url='https://github.com/AleksiNummelin/MicroInverse',
     version='0.1.0',
