@@ -34,7 +34,7 @@ but smaller than the decorrelation timescale of the tracer.
 In practice tau is hard to choose a priori which is why we suggest first inverting your data at multiple values 
 of tau and combining the results afterwards using MicroInverse.MicroInverse_utils.combine_Taus().
 
-MicroInverse will also relate **B** to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`__ for details)
+MicroInverse will also relate **B** to velocity, diffusivity, and decay via advection-diffusion-relaxation equation (see `Nummelin et al. (2018)`_ for details)
 
 * Free software: MIT license
 * Documentation: https://MicroInverse.readthedocs.io.
@@ -43,7 +43,7 @@ MicroInverse will also relate **B** to velocity, diffusivity, and decay via adve
 Features
 --------
 
-* TODO
+* Estimates of velocity, diffusivity, and decay timescale from a timseries of 2D tracer.
 
 Credits
 -------
@@ -54,7 +54,7 @@ This package is based on work by `Nummelin et al. (2018)`_ and Jeffress and Hain
 .. _2014a: https://doi.org/10.1002/qj.2313
 .. _2014b: https://doi.org/10.1088/1367-2630/16/10/105001 
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+Package is created with Cookiecutter_ using the `audreyr/cookiecutter-pypackage`_ project template.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
