@@ -17,7 +17,7 @@ install:
 # Command to run tests, e.g. python setup.py test
 #script: tox
 script:
-  - py.test MicroInverse #python setup.py test
+  - pytest MicroInverse #python setup.py test
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
