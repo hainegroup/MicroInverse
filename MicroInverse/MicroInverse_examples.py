@@ -1,5 +1,6 @@
 import numpy as np
 from MicroInverse import MicroInverse_utils as mutils
+#import MicroInverse_utils as mutils
 import matplotlib.pyplot as plt
 
 def run_examples(examples,just_a_test=False):
@@ -75,7 +76,7 @@ def run_examples(examples,just_a_test=False):
                     ax2.hist(Kxy.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SE-NW}$')
                     ax2.hist(Kyx.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SW-NE}$')
                     #
-                    ax3.hist(R.flatten()/(3600*24),range=(0.0,2/(data['r']*3600*24)),bins=21)
+                    ax3.hist(R.flatten()/(3600*24),range=(0.0,2/(data['r']*3600*24)),bins=21,label='R')
                     #
                     #ADD A HORIZONTAL LINE TO EACH PLOT THAT SHOWS THE 'TRUE' VALUE
                     ax1.axvline(data['vel'],lw=2,ls='--',color='gray')
