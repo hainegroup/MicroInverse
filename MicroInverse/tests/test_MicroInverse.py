@@ -22,7 +22,7 @@ class TestMicroinverse(unittest.TestCase):
     """Tests for `MicroInverse` package."""
     
     def test_000(self):
-        dirpath = os.path.dirname(os.path.abspath(__file__))
+        dirpath = os.path.dirname(os.path.abspath(__file__))+'/'
         assert run_examples([''], just_a_test=True) == 1
         assert run_examples(['example1'], just_a_test=False, datapath=dirpath) == 2
 
