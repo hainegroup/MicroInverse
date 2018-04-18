@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.ma as ma
-import sys
+#import sys
 import os
 from scipy import linalg
 from scipy.signal import detrend, butter, lfilter
@@ -11,11 +11,35 @@ from joblib import Parallel, delayed
 import tempfile
 import shutil
 import xarray as xr
-import dist
+#import dist
 #import math
 import datetime
 from numpy.linalg import eig, inv
 #
+def distance(origin,destination)
+    '''
+    # Haversine formula
+    # Author: Wayne Dyck
+    #
+    # INPUT DATA
+    # origin      :: (lat1, lon1)
+    # destination :: (lat2, lon2)
+    #
+    # RETURNS
+    #
+    # d           :: distance in km
+    '''
+    #
+    lat1, lon1 = origin
+    lat2, lon2 = destination
+    radius = 6371 # km
+    #
+    a = np.sin(dlat/2) * np.sin(dlat/2) + np.cos(np.radians(lat1))* np.cos(np.radians(lat2)) * np.sin(dlon/2) * np.sin(dlon/2)
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+    d = radius * c
+    #
+    return d
+
 def smooth2D_loop(k2,h2,n,ymax,xmax,jind,iind,lat,lon,datain,data_out,weights_out,use_weights,weights_only,use_median,use_dist,xscaling):
     """This is the loop to be run paralllel by smooth2D_parallel. Should not be called directly. """
     for k in range(k2,min([k2+h2,len(jind)])):
@@ -39,9 +63,9 @@ def smooth2D_loop(k2,h2,n,ymax,xmax,jind,iind,lat,lon,datain,data_out,weights_ou
            jind2[-1]=j; iind2[-1]=i
           if use_weights and use_dist:
             if len(lon.shape)==1:
-               dxy.append(dist.distance([lat[j],lon[i]],[lat[jind2[c]],lon[iind2[c]]]))
+               dxy.append(distance([lat[j],lon[i]],[lat[jind2[c]],lon[iind2[c]]]))
             else:
-               dxy.append(dist.distance([lat[j,i],lon[j,i]],[lat[jind2[c],iind2[c]],lon[jind2[c],iind2[c]]]))
+               dxy.append(distance([lat[j,i],lon[j,i]],[lat[jind2[c],iind2[c]],lon[jind2[c],iind2[c]]]))
           c=c+1
       if k%10000.==0:
          print(k, c, j, i)
@@ -516,18 +540,18 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
           ib = i; jb=j;
           #%use neighbors for boundary points - this gives a small error I guess, we could just calculate these fields and save them
           #THESE SHOULD NOT BE POSSIBLE
-          #dx = dist.distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
-          #dy = dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+          #dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
+          #dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
           #if (block_lon[ib,jb]*block_lon[ib,jb+1]<0):
-          #  dx = dist.distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
+          #  dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
           #if (block_lat[ib,jb]*block_lat[ib+1,jb]<0):
-          #  dy = dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+          #  dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
           #calculate the distance of the 9-points, stored counter clockwise                                                                                                  
           #ds=np.ones(Stencil_size-1)
           #jads=[0,1,1,0,-1,0,-1,0,+1]
           #iads=[0,0,1,1,1,-1,-1,-1,-1]
           #for nn in range(1,len(ds)+1):
-          #   ds[nn-1]=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[nn],jb+jads[nn]],block_lon[ib+iads[nn],jb+jads[nn]]])*1000;
+          #   ds[nn-1]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[nn],jb+jads[nn]],block_lon[ib+iads[nn],jb+jads[nn]]])*1000;
           #
           ds=np.zeros(Stencil_size)                   #distance to the Stencil_center
           #ang=np.zeros(Stencil_size)                   #angel in respect to x axis
@@ -546,9 +570,9 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
           #do a comparison of two cases with and without an interpolation - also figure out if it matter how the up and down are ordered -2,+1 or -2,-1
           for s,ss in enumerate(sads):
             #xn[Stencil_center+ss,:] = x_grid[i+iads[s],j+jads[s],:]
-            ds[Stencil_center+ss]=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
-            #x1=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb+jads[s]],block_lon[ib,jb+jads[s]]])
-            #y1=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb],block_lon[ib+iads[s],jb]])
+            ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
+            #x1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb+jads[s]],block_lon[ib,jb+jads[s]]])
+            #y1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb],block_lon[ib+iads[s],jb]])
             #ang[Stencil_center+ss]=math.atan2(y1,x1);
           if False:
             #we need to interpolate x_grid values to be at the same distance from the central point - this is because the inversion doesn't know about the distance.
@@ -726,7 +750,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             # USING MEAN DISTANCE
             ds=np.zeros(Stencil_size)
             for s,ss in enumerate(sads):
-              ds[Stencil_center+ss]=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
+              ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
             #
             xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:]
             xn[Stencil_center,:] = x_grid[i,j,:]
@@ -741,7 +765,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             ds=np.zeros(len(s_ads)+1)
             ang=np.zeros(len(s_ads)+1)
             for s,ss in enumerate(s_ads):
-              ds[cent+ss]=dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]])*1000;
+              ds[cent+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]])*1000;
             ang[cent+np.array(s_ads)]=np.arctan2(i_ads,j_ads)*180/np.pi
             ang[np.where(ang<0)]=ang[np.where(ang<0)]+360
             #
@@ -772,14 +796,14 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
           else:
             # ORIGINAL VERSION
             # calc distances
-            dx = dist.distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
-            dy = dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+            dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
+            dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
             # correct negative distances due to blocks spanning meridian
             if (block_lon[ib,jb]*block_lon[ib,jb+1]<0):
-              dx = dist.distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
+              dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
             #
             if (block_lat[ib,jb]*block_lat[ib+1,jb]<0):
-              dy = dist.distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+              dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
             # fill xn with timeseries of center point and neighbors
             for ci in range(Stencil_center):
               if ci==0:
