@@ -5,6 +5,7 @@
 
 
 import unittest
+import os
 #from click.testing import CliRunner
 
 #import MicroInverse.MicroInverse as mi
@@ -21,8 +22,9 @@ class TestMicroinverse(unittest.TestCase):
     """Tests for `MicroInverse` package."""
     
     def test_000(self):
-        assert run_examples(['example1'], just_a_test=True) == 1
-        
+        dirpath = os.path.dirname(os.path.abspath(__file__))
+        assert run_examples([''], just_a_test=True) == 1
+        assert run_examples(['example1'], just_a_test=False, datapath=dirpath) == 2
 
 if __name__ == '__main__':
     unittest.main()

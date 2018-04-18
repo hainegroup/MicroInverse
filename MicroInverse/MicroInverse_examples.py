@@ -3,7 +3,7 @@ from MicroInverse import MicroInverse_utils as mutils
 #import MicroInverse_utils as mutils
 import matplotlib.pyplot as plt
 
-def run_examples(examples,just_a_test=False):
+def run_examples(examples,just_a_test=False,plotting=False,datapath=''):
     '''
     Run example inversion.
     
@@ -33,7 +33,7 @@ def run_examples(examples,just_a_test=False):
            # load the data - here we do not remove a mean or climatology (should be done for real data!!)
            # because we know that the input follows advection-diffusion-relaxation equation without any
            # forcing
-           data=np.load('adv_diff_fipy_solve_1000_vel0.05_r005_dx5000_dt1000.npz')
+           data=np.load(datapath+'adv_diff_fipy_solve_1000_vel0.05_r005_dx5000_dt1000.npz')
            x_grid=data['x_grid'][:]
            # size of the domain in grid size and 'real world'
            nx=data['nx']
@@ -55,39 +55,41 @@ def run_examples(examples,just_a_test=False):
            num_cores      = 10 # let's do this on 10 cores 
            #
            for rotate in [False,True]:
-               if rotate:
-                 # note that on a rotated stencil the grid cells are actually separated by sqrt(dx^2+dy^2)
-                 dx=dy=np.sqrt(dx**2+dy**2)
-                 U,V,Kx,Ky,Kxy,Kyx,R,B=mutils.inversion(x_grid, yinds, xinds, lon, lat, nx, ny, nt, stencil_center, stencil_size, tau, dt, inversion_method='integral', dx_const=dx, dy_const=dy, b_9points=False, rotate=rotate, num_cores=num_cores)
-                 #
-                 fig,(ax1,ax2,ax3)=plt.subplots(nrows=1,ncols=3)
-                 #
-                 if not rotate:
-                    fig.suptitle('East-West, North-South oriented inversion')
-                    ax1.hist(U.flatten(),range=(0,data['vel']*2),bins=21,label='U')
-                    ax1.hist(V.flatten(),range=(0,data['vel']*2),bins=21,label='V')
-                    ax2.hist(Kx.flatten(),range=(0,data['D']*2),bins=21,label='K$_{E-W}$')
-                    ax2.hist(Ky.flatten(),range=(0,data['D']*2),bins=21,label='K$_{N-S}$')
-                 elif rotate:
-                    fig.suptitle('Southeast-Northwest, Southwest-Northeast oriented inversion')
-                    #rotate the velocity components back to east-west, north-south orientation
-                    ax1.hist(U.flatten()*np.sin(np.pi/4.)+V.flatten()*np.cos(np.pi/4.),range=(0,data['vel']*2),bins=21,label='U')
-                    ax1.hist(V.flatten()*np.sin(np.pi/4.)+U.flatten()*np.cos(np.pi/4.),range=(0,data['vel']*2),bins=21,label='V')
-                    ax2.hist(Kxy.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SE-NW}$')
-                    ax2.hist(Kyx.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SW-NE}$')
-                    #
-                    ax3.hist(R.flatten()/(3600*24),range=(0.0,2/(data['r']*3600*24)),bins=21,label='R')
-                    #
-                    #ADD A HORIZONTAL LINE TO EACH PLOT THAT SHOWS THE 'TRUE' VALUE
-                    ax1.axvline(data['vel'],lw=2,ls='--',color='gray')
-                    ax2.axvline(data['D'],lw=2,ls='--',color='gray')
-                    ax3.axvline(1/(data['r']*3600*24),lw=2,ls='--',color='gray')
-                    #
-                    ax1.legend()
-                    ax2.legend()
-                    ax3.legend()
-                    #
-                    ax1.set_xlabel('Velocity [m s$^{-1}$]')
-                    ax2.set_xlabel('Diffusivity [m$^2$ s$^{-1}$]')
-                    ax3.set_xlabel('Decay timescale [days]')
-                    ax1.set_ylabel('Count [grid cells]')
+               # note that on a rotated stencil the grid cells are actually separated by sqrt(dx^2+dy^2)
+               dx=dy=np.sqrt(dx**2+dy**2)
+               U,V,Kx,Ky,Kxy,Kyx,R,B=mutils.inversion(x_grid, yinds, xinds, lon, lat, nx, ny, nt, stencil_center, stencil_size, tau, dt, inversion_method='integral', dx_const=dx, dy_const=dy, b_9points=False, rotate=rotate, num_cores=num_cores)
+               #
+               if plotting:
+                   fig,(ax1,ax2,ax3)=plt.subplots(nrows=1,ncols=3)
+                   #
+                   if not rotate:
+                       fig.suptitle('East-West, North-South oriented inversion')
+                       ax1.hist(U.flatten(),range=(0,data['vel']*2),bins=21,label='U')
+                       ax1.hist(V.flatten(),range=(0,data['vel']*2),bins=21,label='V')
+                       ax2.hist(Kx.flatten(),range=(0,data['D']*2),bins=21,label='K$_{E-W}$')
+                       ax2.hist(Ky.flatten(),range=(0,data['D']*2),bins=21,label='K$_{N-S}$')
+                   elif rotate:
+                       fig.suptitle('Southeast-Northwest, Southwest-Northeast oriented inversion')
+                       # rotate the velocity components back to east-west, north-south orientation
+                       ax1.hist(U.flatten()*np.sin(np.pi/4.)+V.flatten()*np.cos(np.pi/4.),range=(0,data['vel']*2),bins=21,label='U')
+                       ax1.hist(V.flatten()*np.sin(np.pi/4.)+U.flatten()*np.cos(np.pi/4.),range=(0,data['vel']*2),bins=21,label='V')
+                       ax2.hist(Kxy.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SE-NW}$')
+                       ax2.hist(Kyx.flatten(),range=(0,data['D']*2),bins=21,label='K$_{SW-NE}$')
+                       #
+                   ax3.hist(R.flatten()/(3600*24),range=(0.0,2/(data['r']*3600*24)),bins=21,label='R')
+                   #
+                   # ADD A HORIZONTAL LINE TO EACH PLOT THAT SHOWS THE 'TRUE' VALUE
+                   ax1.axvline(data['vel'],lw=2,ls='--',color='gray')
+                   ax2.axvline(data['D'],lw=2,ls='--',color='gray')
+                   ax3.axvline(1/(data['r']*3600*24),lw=2,ls='--',color='gray')
+                   #
+                   ax1.legend()
+                   ax2.legend()
+                   ax3.legend()
+                   #
+                   ax1.set_xlabel('Velocity [m s$^{-1}$]')
+                   ax2.set_xlabel('Diffusivity [m$^2$ s$^{-1}$]')
+                   ax3.set_xlabel('Decay timescale [days]')
+                   ax1.set_ylabel('Count [grid cells]')
+           
+           return 2
