@@ -16,7 +16,7 @@ import xarray as xr
 import datetime
 from numpy.linalg import eig, inv
 #
-def distance(origin,destination)
+def distance(origin,destination):
     '''
     # Haversine formula
     # Author: Wayne Dyck
