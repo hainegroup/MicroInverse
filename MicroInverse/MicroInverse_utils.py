@@ -16,7 +16,7 @@ import xarray as xr
 import datetime
 from numpy.linalg import eig, inv
 #
-def distance(origin,destination):
+def distance(origin,destination,radius=6371):
     '''
     # Haversine formula
     # Author: Wayne Dyck
@@ -32,7 +32,7 @@ def distance(origin,destination):
     #
     lat1, lon1 = origin
     lat2, lon2 = destination
-    radius = 6371 # km
+    #radius = 6371 # km
     #
     dlat = np.radians(lat2-lat1)
     dlon = np.radians(lon2-lon1)
@@ -573,7 +573,7 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
           #do a comparison of two cases with and without an interpolation - also figure out if it matter how the up and down are ordered -2,+1 or -2,-1
           for s,ss in enumerate(sads):
             #xn[Stencil_center+ss,:] = x_grid[i+iads[s],j+jads[s],:]
-            ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
+            ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]],radius=radius)*1000;
             #x1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb+jads[s]],block_lon[ib,jb+jads[s]]])
             #y1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb],block_lon[ib+iads[s],jb]])
             #ang[Stencil_center+ss]=math.atan2(y1,x1);
@@ -713,7 +713,7 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
           #
           #block_vars[4,i,j] = -1./(bn2[Stencil_center]+ 2*block_vars[2,i,j]/(0.5*(ds[Stencil_center+1]+ds[Stencil_center-1]))**2 + 2*block_vars[3,i,j]/(0.5*(ds[Stencil_center+2]+ds[Stencil_center-2]))**2+ 2*block_vars[5,i,j]/(0.5*(ds[Stencil_center+3]+ds[Stencil_center-3]))**2 + 2*block_vars[6,i,j]/(0.5*(ds[Stencil_center+4]+ds[Stencil_center-4]))**2)
 
-def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,rot=False,block_vars2=None,inversion_method='integral',dx_const=None,dy_const=None, DistType='mean'):
+def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,rot=False,block_vars2=None,inversion_method='integral',dx_const=None,dy_const=None, DistType='mean',radius=6371):
     """Invert 2D data using a 5 point stencil. This function should be not be caller directly, instad call the inversion() function 
        Possibility to use either 'classic' north-south, east-west stencil (rot=False, default), or a stencil rotated 45 deg to the left (east)."""
     #
@@ -753,7 +753,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             # USING MEAN DISTANCE
             ds=np.zeros(Stencil_size)
             for s,ss in enumerate(sads):
-              ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]])*1000;
+              ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]],radius=radius)*1000;
             #
             xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:]
             xn[Stencil_center,:] = x_grid[i,j,:]
@@ -768,7 +768,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             ds=np.zeros(len(s_ads)+1)
             ang=np.zeros(len(s_ads)+1)
             for s,ss in enumerate(s_ads):
-              ds[cent+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]])*1000;
+              ds[cent+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]],radius=radius)*1000;
             ang[cent+np.array(s_ads)]=np.arctan2(i_ads,j_ads)*180/np.pi
             ang[np.where(ang<0)]=ang[np.where(ang<0)]+360
             #
@@ -799,14 +799,14 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
           else:
             # ORIGINAL VERSION
             # calc distances
-            dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
-            dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+            dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000;
+            dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000;
             # correct negative distances due to blocks spanning meridian
             if (block_lon[ib,jb]*block_lon[ib,jb+1]<0):
-              dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
+              dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000;
             #
             if (block_lat[ib,jb]*block_lat[ib+1,jb]<0):
-              dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
+              dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000;
             # fill xn with timeseries of center point and neighbors
             for ci in range(Stencil_center):
               if ci==0:
@@ -923,7 +923,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
               block_vars2[:len(bn),i,j] = bn 
 
 #
-def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, num_cores=18):
+def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, num_cores=18,radius=6371):
     """
     Invert gridded data using a local stencil. This function will setup variabes and call the parallel_inversion function
     which will perform the actual inversion.
@@ -951,6 +951,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
                                 Note that in this case U will be the (Southwest - Northeast) component and 
                                 V will be the (Southeast - Northwest) component. 
     # num_cores              :: Number of cores to use for the inversion (defaults to 18); should be adjusted to your system.
+    # radius                 :: Radius of the planet in km, defaults to Earth (6371 km)
 
     returns U, V, Kx, Ky, Kxy, Kyx, R, B
     
@@ -990,7 +991,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     x_grid2[:]=x_grid[:].copy()
     #
     if b_9points:
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion_9point)(j,x_grid2,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method=inversion_method) for j in range(1,block_num_lons-1))
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion_9point)(j,x_grid2,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method=inversion_method,radius=radius) for j in range(1,block_num_lons-1))
        Browsp = block_rows[1:-1];
        Bcolsp = block_cols[1:-1];
        m=Stencil_center
@@ -1053,7 +1054,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     elif rotate:
        #invert rotated version
        print('rotation')
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=True, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean') for j in range(1,block_num_lons-1))
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=True, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean',radius=radius) for j in range(1,block_num_lons-1))
        #
        U_ret   = np.array(block_vars1[0,1:-1,1:-1])
        V_ret   = np.array(block_vars1[1,1:-1,1:-1])
@@ -1065,7 +1066,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
        Ky_ret=None
     elif not rotate:
        print('no rotation')
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean') for j in range(1,block_num_lons-1))
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean',radius=radius) for j in range(1,block_num_lons-1))
        #
        U_ret   = np.array(block_vars1[0,1:-1,1:-1])
        V_ret   = np.array(block_vars1[1,1:-1,1:-1])
