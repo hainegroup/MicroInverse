@@ -268,7 +268,7 @@ def Implement_Notch_Filter(data, lowcut, highcut, fs=1, order=3, ripple=20, atte
     return filtered_data
 
 
-def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month=True):
+def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month):
     """Remove climatology, i.e. fit 12 month and optionally (rem6month=True, default setting) from the data"""
     print(jj, 'removing climatology...')
     dum1=dum[:,jj:jj+h2] #.data
@@ -292,21 +292,21 @@ def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month=True):
      for j in inds:
        y = dum1[:,j]
        #fit one year signal
-       beta = np.linalg.lstsq(x1, y)[0]
+       beta = np.linalg.lstsq(x1, y, rcond=None)[0]
        y12mo = beta[0]+beta[1]*np.cos((2*np.pi)*f1*t)+beta[2]*np.sin((2*np.pi)*f1*t);
        #
        if rem6month:
          #fit 6 month signal
-         beta=np.linalg.lstsq(x2, y)[0]
+         beta=np.linalg.lstsq(x2, y, rcond=None)[0]
          y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t);
          dum_out[:,jj+j]=y-y12mo-y6mo
        else:
          dum_out[:,jj+j]=y-y12mo
 
-def remove_climatology(var,dt,num_cores=18):
+def remove_climatology(var,dt,num_cores=18,rem6month=True):
     "remove climatology from a numpy array (!not a masked_array!) which has dimensions (nt,nx*ny)"
     #num_cores=20
-    h2=var.shape[-1]/num_cores
+    h2=var.shape[-1]//num_cores
     #
     var=var-np.nanmean(var,0)
     #
@@ -321,7 +321,7 @@ def remove_climatology(var,dt,num_cores=18):
     #
     #Parallel(n_jobs=num_cores)(delayed(remove_climatology_loop)(jj,h2,dum1,X_par) for jj in range(0,var.shape[-1],h2))
     #Parallel(n_jobs=num_cores)(delayed(remove_climatology_loop)(jj,h2,dum[:,jj:jj+h2],X_par[:,jj:jj+h2]) for jj in range(0,var.shape[-1],h2))
-    Parallel(n_jobs=num_cores)(delayed(remove_climatology_loop)(jj,h2,dum,X_par,dt) for jj in range(0,var.shape[-1],h2))
+    Parallel(n_jobs=num_cores)(delayed(remove_climatology_loop)(jj,h2,dum,X_par,dt,rem6month) for jj in range(0,var.shape[-1],h2))
     #Parallel(n_jobs=num_cores)(delayed(remove_climatology_loop)(jj,h2,dum1,X_par) for jj in range(0,block_num_lons))
     #
     output=np.asarray(X_par)
@@ -457,8 +457,8 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
     var_par=np.memmap(path1, dtype=float, shape=vshape, mode='w+')
   #nts will keep track of number of days in a year
   nts=np.memmap(path2, dtype=float, shape=(len(fnames)), mode='w+')
-  fnames2=np.memmap(path2, dtype='S'+str(len(fnames[0])+1), shape=(len(fnames)), mode='w+')
-  fnames2[:]=np.asarray(fnames[:])
+  fnames2=np.memmap(path2, dtype='U'+str(len(fnames[0])+1), shape=(len(fnames)), mode='w+')
+  fnames2[:]=fnames #np.asarray(fnames[:])
   # launch the parallel reading
   Parallel(n_jobs=num_cores)(delayed(read_files)(j,nts,jinds,iinds,filepath,fnames2,var_par,varname,sum_over_depth, depth_lim, depth_lim0, model_data=model_data) for j,fname in enumerate(fnames))
   if dim4D:
@@ -1173,9 +1173,9 @@ def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=N
    dx_const=False
    dy_const=False
    #
-   if np.any(dx_const==None) and np.any(dy_const==None):
+   if np.any(dy==None):
       dy=0.25*111E3
-   if np.any(dx_const==None) and np.any(dy_const==None):
+   if np.any(dx==None):
       dx=weight_coslat*dy
    #
    if np.isscalar(dx):
