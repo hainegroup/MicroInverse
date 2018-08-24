@@ -376,13 +376,25 @@ def read_files(j,nts,jinds,iinds,filepath,fnames2,var_par,varname,sum_over_depth
   
   fname=fnames2[j]
   print(fname)
-  ds=xr.open_dataset(filepath+fname,decode_times=False)
+  ds = xr.open_dataset(filepath+fname,decode_times=False)
+  ds = ds.squeeze() #just in case depth etc.
   #
   # reading a file with a timeseries of 2D field (i.e. 3D matrix)
   if len(var_par.shape)==3 and sum_over_depth==False:
     nt,ny,nx=ds[varname].shape
     nts[j]=nt
-    dum=ds[varname].values[:,jinds,iinds]
+    #this is a quick fix without a need to change upstream calls - supposedly faster?
+    if False:
+       jlen=np.unique(jinds).shape[0]
+       ilen=np.unique(iinds).shape[0]
+       j1=np.reshape(jinds,(jlen,ilen))[:,0]
+       i1=np.reshape(iinds,(jlen,ilen))[1,:]
+       exec('dum=ds.'+varname+'[:,j1,i1].values')
+       dum=ds[varname][:,j1,i1].values
+       dum=np.reshape(dum,(nt,-1)) 
+    else:
+       #old version - very slow!
+       dum=ds[varname].values[:,jinds,iinds]
     dum[np.where(dum>1E30)]=np.nan
     #
     var_par[j,:nt,:]=dum
@@ -467,11 +479,11 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
     if remove_clim:
       print('removing climatology') 
       # smooth the daily climatology with monthly filter, as the climatology will be still noisy at daily scales
-      var_clim=np.concatenate([var_clim[-120/dt:,],var_clim,var_clim[:120/dt,]],axis=0)
+      var_clim=np.concatenate([var_clim[-120//dt:,],var_clim,var_clim[:120//dt,]],axis=0)
       b,a=signal.butter(3,2./(30/dt))
       jnonan=np.where(np.isfinite(np.sum(var_clim,0)))
       var_clim[:,jnonan]=signal.filtfilt(b,a,var_clim[:,jnonan],axis=0)
-      var_clim=var_clim[120/dt:120/dt+366/dt,]
+      var_clim=var_clim[120//dt:120//dt+366//dt,]
     #
     # this is the on off switch for removing the climatology
     var_clim=var_clim*int(remove_clim) 
@@ -523,10 +535,10 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
   return var, var_clim
 
 #
-def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method='integral'):
+def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method='integral',dx_const=None, dy_const=None, DistType='interp', radius=6371, nn=4):
     """ 
     """
-    for i in range(1,block_num_lats-1): #range(1,block_num_lats-1):
+    for i in range(2,block_num_lats-2): #range(1,block_num_lats-1):
       if np.isfinite(ma.sum(x_grid[i,j,:])):
         xn = np.zeros((Stencil_size,block_num_samp))
         #count non-border neighbors of grid point
@@ -541,84 +553,59 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
         #%only invert if point has 9 non-border neighbors - so what happens at the boundaries??
         if numnebs==9: #numnebs>2: #numnebs==9:
           ib = i; jb=j;
-          #%use neighbors for boundary points - this gives a small error I guess, we could just calculate these fields and save them
-          #THESE SHOULD NOT BE POSSIBLE
-          #dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
-          #dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
-          #if (block_lon[ib,jb]*block_lon[ib,jb+1]<0):
-          #  dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]])*1000;
-          #if (block_lat[ib,jb]*block_lat[ib+1,jb]<0):
-          #  dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]])*1000;
-          #calculate the distance of the 9-points, stored counter clockwise                                                                                                  
-          #ds=np.ones(Stencil_size-1)
-          #jads=[0,1,1,0,-1,0,-1,0,+1]
-          #iads=[0,0,1,1,1,-1,-1,-1,-1]
-          #for nn in range(1,len(ds)+1):
-          #   ds[nn-1]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[nn],jb+jads[nn]],block_lon[ib+iads[nn],jb+jads[nn]]])*1000;
           #
-          ds=np.zeros(Stencil_size)                   #distance to the Stencil_center
-          #ang=np.zeros(Stencil_size)                   #angel in respect to x axis
-          ang=[315,225,270,180,0,0,90,45,135]
-          ds2=np.zeros((Stencil_size,Stencil_size))   #distance of each point to unit circle at 45 
-          if False:
-            sads=[-1,+1,-2,+2,-3,+3,-4,+4]              #indices for ds - Stencil_center will be the central point - these are spiraling out
-            jads=[-1,+1, 0, 0,-1,+1,+1,-1]              #left,right,down,up,down-left,up-right,right-down,left-up
-            iads=[ 0, 0,-1,+1,-1,+1,-1,+1]
-          if True:
-            #rotated
-            sads=[-1,+1,-2,+2,-3,+3,-4,+4]
-            jads=[-1,+1,+1,-1,-1,+1, 0, 0]   #left,right,down,up,down-left,up-right,right-down,left-up
-            iads=[-1,+1,-1,+1, 0, 0,-1,+1]
+          sads = [-1,+1,-2,+2,-3,+3,-4,+4]              # indices for ds - Stencil_center will be the central point - these are spiraling out
+          jads = [-1,+1, 0, 0,-1,+1,+1,-1]              # left,right,down,up,down-left,up-right,right-down,left-up
+          iads = [ 0, 0,-1,+1,-1,+1,-1,+1]
           #
-          #do a comparison of two cases with and without an interpolation - also figure out if it matter how the up and down are ordered -2,+1 or -2,-1
-          for s,ss in enumerate(sads):
-            #xn[Stencil_center+ss,:] = x_grid[i+iads[s],j+jads[s],:]
-            ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]],radius=radius)*1000;
-            #x1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb+jads[s]],block_lon[ib,jb+jads[s]]])
-            #y1=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb],block_lon[ib+iads[s],jb]])
-            #ang[Stencil_center+ss]=math.atan2(y1,x1);
-          if False:
-            #we need to interpolate x_grid values to be at the same distance from the central point - this is because the inversion doesn't know about the distance.
-            #first find the minimum distance - we will interpolate all the other points to be at this distance
-            dr=ma.median(ds[list([0,1,2,3,5,6,7,8])])
-            ds2[:,Stencil_center]=dr
+          s_ads = [-1,+1,-2,+2,-3,+3,-4,+4,-5,+5,-6,+6,-7,+7,-8,+8,-9,+9,-10,+10,-11,+11,-12,+12]
+          j_ads = [-1,+1, 0, 0,-1,+1,+1,-1,-2,-2,-2,+2,+2,+2,-1, 0,+1,+1,  0, -1, -2, +2, +2, -2]
+          i_ads = [ 0, 0,-1,+1,-1,+1,-1,+1,+1, 0,-1,+1, 0,-1,-2,-2,-2,+2, +2, +2, -2, +2, -2, +2]
+          #
+          ds   = np.zeros(len(s_ads)+1)                 # distance to the Stencil_center
+          dx   = np.zeros(len(s_ads)+1)
+          dy   = np.zeros(len(s_ads)+1)
+          ang2 = [180,0,270,90,225,45,315,135]          # left,right,down,up, down-left,up-right,right-down,left-up
+          ds2  = np.zeros((len(ang2),len(ds)))
+          cent = len(s_ads)//2 
+          # 
+          # CALCULATE THE DISTANCE BETWEEN THE CENTRAL AND SURROUNDING POINTS
+          for s,ss in enumerate(s_ads):
+            #
+            ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
+            dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
+            dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000;
+            #
+          ang=np.arctan2(dy,dx)*180/np.pi
+          ang[np.where(ang<0)]=ang[np.where(ang<0)]+360
+          #
+          if DistType in ['interp'] and np.any(dx_const==None) and np.any(dy_const==None):
+            # we need to interpolate x_grid values to be at the same distance from the central point - this is because the inversion doesn't know about the distance.
+            #
+            # CHOOSE A DISTANCE TO USE - HERE 1km off from the median of the 4 closest cells
+            dr = np.nanmedian(ds[[cent-2,cent-1,cent+1,cent+2]])+1E3
+            ds2[:,Stencil_center] = dr
             #find out how far each point is from the unit circle point facing each grid cell. 
             #axis=0 loops over each point of interest, and axis=1 loops over all the surrounding points
-            for s,ss in enumerate(sads):
-              for s2,ss2 in enumerate(sads):
-                ds2[Stencil_center+ss,Stencil_center+ss2]=np.sqrt(ds[Stencil_center+ss2]**2+dr**2-2*dr*ds[Stencil_center+ss2]*np.cos((ang[Stencil_center+ss2]-ang[Stencil_center+ss])*np.pi/180.))
+            for s,a2 in enumerate(ang2):
+              for s2,ss2 in enumerate(s_ads):
+                ds2[s,cent+ss2]=np.sqrt(ds[cent+ss2]**2+dr**2-2*dr*ds[cent+ss2]*np.cos((ang[cent+ss2]-a2)*np.pi/180.))
             #
-            ds2=np.delete(ds2,Stencil_center,axis=0) #remove the central point from the points of interest - we know the value already
-            ds2=np.delete(ds2,Stencil_center,axis=1) #remove the central point from the points that affect interpolation - we don't want to transform any information outside
-            winds=np.argsort(ds2,axis=1) #
-            ds2_sort=np.sort(ds2,axis=1)
-            weigths=((1/ds2_sort[:,:3]).T/(ma.sum(1/ds2_sort[:,:3],1))).T #(ma.sum(ds3_sort[:4,:],0)-ds3_sort[:4,:])/ma.sum(ma.sum(ds3_sort[:4,:],0)-ds3_sort[:4,:],0)
-            weigths[np.where(np.isnan(weigths))]=1
-            xdum1=ma.sum(x_grid[i+np.array(iads),j+np.array(jads),:][winds[:,:3],:].T*weigths.T,1).T
-            xn[Stencil_center+np.array(sads),:]=xdum1
-            #xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:] #xdum1
-            xn[Stencil_center,:] = x_grid[i,j,:]
-            #xn[Stencil_center+np.array(sads),:]=ma.sum(xn[winds[:,:3],:].T*weigths.T,1).T
+            #calculate weighted mean of the surrounding cells (linear interpolation)
+            ds2[:,cent] = dr
+            winds       = np.argsort(ds2,axis=1) #
+            ds2_sort    = np.sort(ds2,axis=1)
+            weigths     = ((1/ds2_sort[:,:nn]).T/(np.sum(1/ds2_sort[:,:nn],1))).T # 6 closest points
+            weigths[np.where(np.isnan(weigths))] = 1
+            #
+            xn[Stencil_center+np.array(sads),:] = ma.sum(x_grid[ib+np.array(i_ads),jb+np.array(j_ads),:][winds[:,:nn],:].T*weigths.T,1).T
+            xn[Stencil_center,:]                = x_grid[ib,jb,:]
           else:
-            dr=ds
-            xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:]
-            xn[Stencil_center,:] = x_grid[i,j,:]
+            # 
+            dr = ds
+            xn[Stencil_center+np.array(sads),:] = x_grid[ib+np.array(iads),jb+np.array(jads),:]
+            xn[Stencil_center,:] = x_grid[ib,jb,:]
           #
-          #for ci in range(Stencil_center): 
-          #  if ci==0:
-          #    xn[Stencil_center-1,:] = x_grid[i,j-1,:] #left
-          #    xn[Stencil_center+1,:] = x_grid[i,j+1,:] #rigth
-          #  elif ci==1:
-          #    xn[Stencil_center-2,:] = x_grid[i+1,j,:] #up
-          #    xn[Stencil_center+2,:] = x_grid[i-1,j,:] #down
-          #  elif ci==2:
-          #    xn[Stencil_center-3,:] = x_grid[i-1,j-1,:] #down, left
-          #    xn[Stencil_center+3,:] = x_grid[i+1,j+1,:] #up right
-          #  elif ci==3:
-          #    xn[Stencil_center-4,:] = x_grid[i-1,j+1,:] #right,down
-          #    xn[Stencil_center+4,:] = x_grid[i+1,j-1,:] #left, up
-          #
-          #xn[Stencil_center,:] = x_grid[i,j,:]
           #use only those stencil members that are finite - setting others to zero
           fin_inds=np.isfinite(xn[:,0])
           xn[np.where(~fin_inds)[0],:]=0 #xn=xn[np.where(fin_inds)[0],:]
@@ -634,12 +621,7 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
             #tmp = np.dot(a.data, np.linalg.inv(b.data))
             tmp[np.isnan(tmp)] = 0;
             tmp[np.isinf(tmp)] = 0;
-            #if ma.sum(abs(tmp-tmp[0]))>1E-10:
-            #  bb = (1./(Tau*Dt_secs))*linalg.logm(tmp)
-            #  bn = np.real(bb[Stencil_center2,:])
-            #  bn[np.isnan(bn)]   = 0;
-            #else:
-            #  bn = np.zeros(tmp.shape[0])
+            #
             if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10:
               try:
                 bb = (1./(Tau*Dt_secs))*linalg.logm(tmp)
@@ -690,28 +672,10 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
           ############################################
           # -- solve for U K and R from row of bn -- #
           ############################################
-          #bn2=np.zeros(Stencil_size)
-          #bn2[np.where(fin_inds)[0]]=bn
-          #block_vars[np.where(fin_inds)[0],i,j]=bn
+          # actually just save bn - calculate the rest later
           block_vars[0,:,i,j]=bn
           block_vars[1,:,i,j]=dr
           block_vars[2,:,i,j]=fin_inds
-          #block_vars[0,i,j]  = (-0.5*(ds[Stencil_center+1]+ds[Stencil_center-1])*(bn2[Stencil_center+1]-bn2[Stencil_center-1])*min([fin_inds[Stencil_center+1],fin_inds[Stencil_center-1]])
-          #                     -(1/np.sqrt(2))*0.5*(ds[Stencil_center+3]+ds[Stencil_center-3])*(bn2[Stencil_center+3]-bn2[Stencil_center-3])*min([fin_inds[Stencil_center+3],fin_inds[Stencil_center-3]])
-          #                     -(1/np.sqrt(2))*0.5*(ds[Stencil_center-4]+ds[Stencil_center+4])*(bn2[Stencil_center-4]-bn2[Stencil_center+4])*min([fin_inds[Stencil_center-4],fin_inds[Stencil_center+4]]))
-          #why the minus sign here - removed for now, maybe it makes more sense??
-          #block_vars[1,i,j]  = (0.5*(ds[Stencil_center+2]+ds[Stencil_center-2])*(bn2[Stencil_center+2]-bn2[Stencil_center-2])*min([fin_inds[Stencil_center+2],fin_inds[Stencil_center-2]])
-          #                     -(1/np.sqrt(2))*0.5*(ds[Stencil_center+3]+ds[Stencil_center-3])*(bn2[Stencil_center+3]-bn2[Stencil_center-3])*min([fin_inds[Stencil_center+3],fin_inds[Stencil_center-3]])
-          #                     -(1/np.sqrt(2))*0.5*(ds[Stencil_center+4]+ds[Stencil_center-4])*(bn2[Stencil_center+4]-bn2[Stencil_center-4])*min([fin_inds[Stencil_center+4],fin_inds[Stencil_center-4]]))
-          #dum1=1./2*(0.5*(ds[Stencil_center+3]+ds[Stencil_center-3]))**2*(bn2[Stencil_center+3]+bn2[Stencil_center-3])*min([fin_inds[Stencil_center+3],fin_inds[Stencil_center-3]]); #up-right + down-left
-          #dum2=1./2*(0.5*(ds[Stencil_center+4]+ds[Stencil_center-4]))**2*(bn2[Stencil_center+4]+bn2[Stencil_center-4])*min([fin_inds[Stencil_center+4],fin_inds[Stencil_center-4]]); #up-left + down-right
-          #block_vars[2,i,j] = 1./2*(0.5*(ds[Stencil_center+1]+ds[Stencil_center-1]))**2*(bn2[Stencil_center-1]+bn2[Stencil_center+1])*min([fin_inds[Stencil_center+1],fin_inds[Stencil_center-1]]);
-          #+(1/np.sqrt(2))*dum1+(1/np.sqrt(2))*dum2; #Kx
-          #block_vars[3,i,j] = 1./2*(0.5*(ds[Stencil_center+2]+ds[Stencil_center-2]))**2*(bn2[Stencil_center-2]+bn2[Stencil_center+2])*min([fin_inds[Stencil_center+2],fin_inds[Stencil_center-2]]); #Ky
-          #block_vars[5,i,j] = 1./2*(0.5*(ds[Stencil_center+3]+ds[Stencil_center-3]))**2*(bn2[Stencil_center+3]+bn2[Stencil_center-3])*min([fin_inds[Stencil_center+3],fin_inds[Stencil_center-3]]);
-          #block_vars[6,i,j] = 1./2*(0.5*(ds[Stencil_center+4]+ds[Stencil_center-4]))**2*(bn2[Stencil_center+4]+bn2[Stencil_center-4])*min([fin_inds[Stencil_center+4],fin_inds[Stencil_center-4]]);
-          #
-          #block_vars[4,i,j] = -1./(bn2[Stencil_center]+ 2*block_vars[2,i,j]/(0.5*(ds[Stencil_center+1]+ds[Stencil_center-1]))**2 + 2*block_vars[3,i,j]/(0.5*(ds[Stencil_center+2]+ds[Stencil_center-2]))**2+ 2*block_vars[5,i,j]/(0.5*(ds[Stencil_center+3]+ds[Stencil_center-3]))**2 + 2*block_vars[6,i,j]/(0.5*(ds[Stencil_center+4]+ds[Stencil_center-4]))**2)
 
 def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,rot=False,block_vars2=None,inversion_method='integral',dx_const=None,dy_const=None, DistType='mean',radius=6371):
     """Invert 2D data using a 5 point stencil. This function should be not be caller directly, instad call the inversion() function 
@@ -850,6 +814,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             # this line in matlab basically means solving for xb=a
             # what we can do in python is # xb = a: solve b.T x.T = a.T
             # see http://stackoverflow.com/questions/1007442/mrdivide-function-in-matlab-what-is-it-doing-and-how-can-i-do-it-in-python
+            # 
             a=ma.dot(xnlag,xn.T)
             b=ma.dot(xn,xn.T)
             a[ma.where(np.isnan(a))]=0
@@ -969,10 +934,10 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     if b_9points:
       Stencil_center=4;Stencil_size=9
       #dumshape=(x_grid.shape[0],block_num_lats,block_num_lons) #
-      folder1 = tempfile.mkdtemp()
-      path1 =  os.path.join(folder1, 'dum1.mmap')
-      dumshape=(3,9,block_num_lats,block_num_lons)
-      block_vars=np.memmap(path1, dtype=float, shape=dumshape, mode='w+')
+      folder1    = tempfile.mkdtemp()
+      path1      =  os.path.join(folder1, 'dum1.mmap')
+      dumshape   = (3,9,block_num_lats,block_num_lons)
+      block_vars = np.memmap(path1, dtype=float, shape=dumshape, mode='w+')
     else:
       folder11 = tempfile.mkdtemp()
       folder12 = tempfile.mkdtemp()
@@ -991,66 +956,60 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     x_grid2[:]=x_grid[:].copy()
     #
     if b_9points:
-       Parallel(n_jobs=num_cores)(delayed(parallel_inversion_9point)(j,x_grid2,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method=inversion_method,radius=radius) for j in range(1,block_num_lons-1))
-       Browsp = block_rows[1:-1];
-       Bcolsp = block_cols[1:-1];
-       m=Stencil_center
-       block_vars2=block_vars[0,:,:,:].squeeze()
+       Parallel(n_jobs=num_cores)(delayed(parallel_inversion_9point)(j,x_grid2,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method=inversion_method,radius=radius) for j in range(2,block_num_lons-2))
+       Browsp      = block_rows[1:-1];
+       Bcolsp      = block_cols[1:-1];
+       m           = Stencil_center
+       block_vars2 = block_vars[0,:,:,:].squeeze()
        #
        print('9 points')
        #-1,+1,-2,+2,-3,+3,-4,+4
        #left,right,down,up,down-left,up-right,right-down,left-up
-       Sm=np.zeros((4,block_vars.shape[-2],block_vars.shape[-1]))
-       Am=np.zeros((4,block_vars.shape[-2],block_vars.shape[-1]))
-       #Am=np.zeros((block_vars[0,:,:,:].squeeze().shape))
-       Sm[0,:,:]=0.5*(block_vars[0,m-1,:,:]+block_vars[0,m+1,:,:]) #j+1
-       Sm[1,:,:]=0.5*(block_vars[0,m-2,:,:]+block_vars[0,m+2,:,:]) #i+1
-       Sm[2,:,:]=0.5*(block_vars[0,m-3,:,:]+block_vars[0,m+3,:,:]) #j+1,i+1
-       Sm[3,:,:]=0.5*(block_vars[0,m-4,:,:]+block_vars[0,m+4,:,:]) #j+1,i-1
+       Sm = np.zeros((4,block_vars.shape[-2],block_vars.shape[-1]))
+       Am = np.zeros((4,block_vars.shape[-2],block_vars.shape[-1]))
        #
-       Am[0,:,:]=0.5*(block_vars[0,m-1,:,:]-block_vars[0,m+1,:,:])
-       Am[1,:,:]=0.5*(block_vars[0,m-2,:,:]-block_vars[0,m+2,:,:])
-       Am[2,:,:]=0.5*(block_vars[0,m-3,:,:]-block_vars[0,m+3,:,:])
-       Am[3,:,:]=0.5*(block_vars[0,m-4,:,:]-block_vars[0,m+4,:,:])
+       Sm[0,:,:] = 0.5*(block_vars[0,m-1,:,:]+block_vars[0,m+1,:,:]) #j+1
+       Sm[1,:,:] = 0.5*(block_vars[0,m-2,:,:]+block_vars[0,m+2,:,:]) #i+1
+       Sm[2,:,:] = 0.5*(block_vars[0,m-3,:,:]+block_vars[0,m+3,:,:]) #j+1,i+1
+       Sm[3,:,:] = 0.5*(block_vars[0,m-4,:,:]+block_vars[0,m+4,:,:]) #j+1,i-1
        #
-       #make dx,dy estimation easier, just use the dx of the central point
-       dx=0.5*(block_vars[1,m+1,:,:]+block_vars[1,m-1,:,:])
-       dy=0.5*(block_vars[1,m+2,:,:]+block_vars[1,m-2,:,:])
-       Kx_dum  = (dx**2)*Sm[0,:,:] #(block_vars[0,m+1,:,:]+block_vars[0,m-1,:,:]) #(mean(dx)**2)*0.5*(B_m+1+B_m-1)
-       Ky_dum  = (dy**2)*Sm[1,:,:] #(block_vars[0,m+2,:,:]+block_vars[0,m-2,:,:]) #(mean(dy)**2)*0.5*(B_m+w+B_m-w)
-       Kxy_dum = (0.5*dx*dy)*Sm[2,:,:]#*(block_vars[0,m+3,:,:]+block_vars[0,m-3,:,:])
-       #Kxy_dum = ((0.5*(block_vars[1,m+3,:,:]+block_vars[1,m-3,:,:]))**2)*0.5*(block_vars[0,m+3,:,:]+block_vars[0,m-3,:,:]) #(mean(dxy)**2)*0.5*(B_m+w+1+B_m-w-1)
-       #Kyx_dum = ((0.5*(block_vars[1,m+4,:,:]+block_vars[1,m-4,:,:]))**2)*0.5*(block_vars[0,m+4,:,:]+block_vars[0,m-4,:,:]) #(mean(dxy)**2)*0.5*(B_m+w-1+B_m-w+1)
+       Am[0,:,:] = 0.5*(block_vars[0,m-1,:,:]-block_vars[0,m+1,:,:])
+       Am[1,:,:] = 0.5*(block_vars[0,m-2,:,:]-block_vars[0,m+2,:,:])
+       Am[2,:,:] = 0.5*(block_vars[0,m-3,:,:]-block_vars[0,m+3,:,:])
+       Am[3,:,:] = 0.5*(block_vars[0,m-4,:,:]-block_vars[0,m+4,:,:])
        #
-       dKxdx  = 1.0/(block_vars[1,m+1,:,:]+block_vars[1,m-1,:,:])
-       dKxydx = 1.0/(block_vars[1,m+1,:,:]+block_vars[1,m-1,:,:])
-       dKydy  = 1.0/(block_vars[1,m+2,:,:]+block_vars[1,m-2,:,:])
-       dKxydy = 1.0/(block_vars[1,m+2,:,:]+block_vars[1,m-2,:,:])
-       dKxdx[:,1:-1]  = 0.5*dKxdx[:,1:-1]*(Kx_dum[:,2:]-Kx_dum[:,:-2])
-       dKydy[1:-1,:]  = 0.5*dKydy[1:-1,:]*(Ky_dum[2:,:]-Ky_dum[:-2,:])
-       dKxydx[:,1:-1] = 0.5*dKxydx[:,1:-1]*(Kxy_dum[:,2:]-Kxy_dum[:,:-2])
-       dKxydy[1:-1,:] = 0.5*dKxydy[1:-1,:]*(Kxy_dum[2:,:]-Kxy_dum[:-2,:])
+       # using average dx, dy
+       dx      = 0.5*(block_vars[1,m+1,:,:]+block_vars[1,m-1,:,:])
+       dy      = 0.5*(block_vars[1,m+2,:,:]+block_vars[1,m-2,:,:])
        #
-       U_dum   = -(block_vars[1,m+1,:,:]+block_vars[1,m-1,:,:])*Am[0,:,:] #(block_vars[0,m+1,:,:]-block_vars[0,m-1,:,:]) #2*mean(dx)*0.5*(B_m+1-B_m-1)=mean(dx)*(B_m+1-B_m-1)
-       V_dum   = -(block_vars[1,m+2,:,:]+block_vars[1,m-2,:,:])*Am[1,:,:] #(block_vars[0,m+2,:,:]-block_vars[0,m-2,:,:]) #2*mean(dy)*0.5*(B_m+w-B_m-w)=mean(dy)*(B_m+w-B_m-w)
-       #rotated system - 45 to the left
-       #U_dum2  = -(block_vars[1,m+3,:,:]+block_vars[1,m-3,:,:])*0.5*(block_vars[0,m+3,:,:]-block_vars[0,m-3,:,:])
-       #V_dum2  = -(block_vars[1,m+4,:,:]+block_vars[1,m-4,:,:])*0.5*(block_vars[0,m+4,:,:]-block_vars[0,m-4,:,:])
-       R_dum   =  abs(np.nansum(block_vars[0,:,:,:],0))                         #J_mm
+       Kx_dum  = (dx**2)*Sm[0,:,:]
+       Ky_dum  = (dy**2)*Sm[1,:,:]
+       Kxy_dum = (0.5*dx*dy)*Sm[2,:,:] # in cartesian system Kxy and Kyx should be the same
+       Kyx_dum = (0.5*dx*dy)*Sm[3,:,:] #
+       KxyKyx  = 0.5*(Kxy_dum+Kyx_dum) # use the mean in the following calculations 
+       #
+       dKxdx   = 1.0/(2*dx)
+       dKxydx  = 1.0/(dx+dy)
+       dKydy   = 1.0/(2*dy)
+       dKxydy  = 1.0/(dx+dy)
+       dKxdx[:,1:-1]  = 0.5*dKxdx[:,1:-1]*(Kx_dum[:,2:] - Kx_dum[:,:-2]) #central difference
+       dKydy[1:-1,:]  = 0.5*dKydy[1:-1,:]*(Ky_dum[2:,:] - Ky_dum[:-2,:])
+       dKxydx[:,1:-1] = 0.5*dKxydx[:,1:-1]*(KxyKyx[:,2:] - KxyKyx[:,:-2])
+       dKxydy[1:-1,:] = 0.5*dKxydy[1:-1,:]*(KxyKyx[2:,:] - KxyKyx[:-2,:])
+       #
+       U_dum   = -(2*dx)*Am[0,:,:]
+       V_dum   = -(2*dy)*Am[1,:,:]
+       R_dum   = -np.nansum(block_vars[0,:,:,:],0) #- sum_mm J_mm
        R_dum[ma.where(~np.isfinite(R_dum))]=0
        #
-       U_ret=(U_dum+dKxdx/(2*dx)+dKxydy/(2*dy))[1:-1,1:-1]
-       V_ret=(V_dum+dKydy/(2*dy)+dKxydx/(2*dx))[1:-1,1:-1]
-       R_ret=R_dum[1:-1,1:-1]
-       Kx_ret=Kx_dum[1:-1,1:-1]
-       Ky_ret=Ky_dum[1:-1,1:-1]
-       Kxy_ret=None #Kxy_dum
-       Kyx_ret=None #Kyx_dum
-       #U_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=U_dum[1:-1,1:-1];
-       #V_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=V_dum[1:-1,1:-1];
-       #Kx_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=Kx_dum[1:-1,1:-1];
-       #Ky_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=Ky_dum[1:-1,1:-1];
-       #R_global[ma.min(Browsp):ma.max(Browsp)+1,ma.min(Bcolsp):ma.max(Bcolsp)+1]=R_dum[1:-1,1:-1];
+       U_ret   = (U_dum+dKxdx+dKxydy)[1:-1,1:-1]
+       V_ret   = (V_dum+dKydy+dKxydx)[1:-1,1:-1]
+       R_ret   = R_dum[1:-1,1:-1]
+       Kx_ret  = Kx_dum[1:-1,1:-1]
+       Ky_ret  = Ky_dum[1:-1,1:-1]
+       Kxy_ret = Kxy_dum[1:-1,1:-1]
+       Kyx_ret = Kyx_dum[1:-1,1:-1]
+       #
     elif rotate:
        #invert rotated version
        print('rotation')
@@ -1174,52 +1133,53 @@ def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=N
    dy_const=False
    #
    if np.any(dy==None):
-      dy=0.25*111E3
+       dy=0.25*111E3
    if np.any(dx==None):
-      dx=weight_coslat*dy
+       dx=weight_coslat*dy
    #
    if np.isscalar(dx):
-      dx_const=True
+       dx_const=True
    if np.isscalar(dy):
-      dy_const=True
+       dy_const=True
    #
    if timeStep==None:
-      timeStep=3600*24.
-   #find minimum dt - if dt is less than tau[0] then use tau[0]
+       timeStep=3600*24.
+   # find minimum dt - if dt is less than tau[0] then use tau[0]
    # but note that in this case the results are likely to be unreliable
    dt=((1/(abs(datain['U'][0,:,:])/dx+abs(datain['V'][0,:,:])/dy))/timeStep)
    dt[np.where(dt<Taus[0])]=Taus[0]
-   #find other taus
+   # find other taus
    for t,tau in enumerate(Taus[:-1]):
-     dt[np.where(ma.logical_and(dt>tau,dt<=Taus[t+1]))]=Taus[t+1];
+       dt[np.where(ma.logical_and(dt>tau,dt<=Taus[t+1]))]=Taus[t+1];
    dt[np.where(dt>Taus[-1])]=Taus[-1];
-   #refine based on the diffusivity criteria
+   # refine based on the diffusivity criteria
    if K_lim:
-    c=0
-    while c<max(Taus):
-     c=c+1
-     for t,tau in enumerate(Taus):
-       jinds,iinds=np.where(dt.squeeze()==tau)
-       if len(jinds)>1:
-         if dx_const:
-           jindsX=np.where(datain['Kx'][t,jinds,iinds].squeeze()*tau*timeStep/dx**2>1)[0]
-         else:
-           jindsX=np.where(datain['Kx'][t,jinds,iinds].squeeze()*tau*timeStep/dx[jinds,iinds]**2>1)[0]
-         if len(jindsX)>1:
-           dt[jinds[jindsX],iinds[jindsX]]=Taus[max(t-1,0)]
-         if dy_const:
-            jindsY=np.where(datain['Ky'][t,jinds,iinds].squeeze()*tau*timeStep/dy**2>1)[0]
-         else:
-            jindsY=np.where(datain['Ky'][t,jinds,iinds].squeeze()*tau*timeStep/dy[jinds,iinds]**2>1)[0]
-         if len(jindsY)>1:
-           dt[jinds[jindsY],iinds[jindsY]]=Taus[max(t-1,0)]
-   #finally pick up the data
-   for key in ['U','V','Kx','Ky','R']:
-       dum2=np.zeros(datain[key][0,:,:].shape)
-       for j,ext in enumerate(Taus):
-           jinds,iinds=np.where(dt.squeeze()==ext)
-           dum2[jinds,iinds]=datain[key][j,jinds,iinds].squeeze()
-       #
-       dataout[key]=dum2
+      c=0
+      while c<max(Taus):
+        c=c+1
+        for t,tau in enumerate(Taus):
+          jinds,iinds=np.where(dt.squeeze()==tau)
+          if len(jinds)>1:
+            if dx_const:
+               jindsX=np.where(datain['Kx'][t,jinds,iinds].squeeze()*tau*timeStep/dx**2>1)[0]
+            else:
+               jindsX=np.where(datain['Kx'][t,jinds,iinds].squeeze()*tau*timeStep/dx[jinds,iinds]**2>1)[0]
+            if len(jindsX)>1:
+               dt[jinds[jindsX],iinds[jindsX]]=Taus[max(t-1,0)]
+            if dy_const:
+               jindsY=np.where(datain['Ky'][t,jinds,iinds].squeeze()*tau*timeStep/dy**2>1)[0]
+            else:
+               jindsY=np.where(datain['Ky'][t,jinds,iinds].squeeze()*tau*timeStep/dy[jinds,iinds]**2>1)[0]
+            if len(jindsY)>1:
+               dt[jinds[jindsY],iinds[jindsY]]=Taus[max(t-1,0)]
+   # finally pick up the data
+   for key in ['U','V','Kx','Ky','R','Kxy','Kyx']:
+       if key in datain.keys():
+            dum2=np.zeros(datain[key][0,:,:].shape)
+            for j,ext in enumerate(Taus):
+                jinds,iinds=np.where(dt.squeeze()==ext)
+                dum2[jinds,iinds]=datain[key][j,jinds,iinds].squeeze()
+            #
+            dataout[key]=dum2
    
    return dataout
