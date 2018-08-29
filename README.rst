@@ -43,7 +43,7 @@ MicroInverse will also relate **B** to velocity, diffusivity, and decay via adve
 Features
 --------
 
-* Estimates of velocity, diffusivity, and decay timescale from a timseries of 2D tracer.
+* Estimates of velocity, diffusivity, and decay timescale from a timeseries of 2D tracer.
 
 Credits
 -------

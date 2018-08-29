@@ -29,6 +29,7 @@ setup(
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
+        'Operating System :: OS Independent',
     ],
     description="MicroInverse is a Python package for inversion of a transport operator from tracer data.",
     entry_points={
@@ -50,6 +51,6 @@ setup(
     test_suite='MicroInverse/tests',
     tests_require=test_requirements,
     url='https://github.com/AleksiNummelin/MicroInverse',
-    version='0.2.0',
+    version='0.3.0',
     zip_safe=False,
 )
