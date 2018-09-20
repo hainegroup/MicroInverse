@@ -1,7 +1,7 @@
 import numpy as np
 from MicroInverse import MicroInverse_utils as mutils
 #import MicroInverse_utils as mutils
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def run_examples(examples,just_a_test=False,plotting=False,datapath=''):
     '''
