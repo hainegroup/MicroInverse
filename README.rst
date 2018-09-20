@@ -9,7 +9,7 @@ MicroInverse
 .. image:: https://img.shields.io/travis/AleksiNummelin/MicroInverse.svg
         :target: https://travis-ci.org/AleksiNummelin/MicroInverse
 
-.. image:: https://readthedocs.org/projects/MicroInverse/badge/?version=latest
+.. image:: https://readthedocs.org/projects/microInverse/badge/?version=latest
         :target: https://MicroInverse.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
@@ -50,7 +50,7 @@ Credits
 
 This package is based on work by `Nummelin et al. (2018)`_ and Jeffress and Haine (2014a_, 2014b_)
 
-.. _Nummelin et al. (2018): http://pages.jh.edu/~anummel1/
+.. _Nummelin et al. (2018): https://doi.org/10.1175/JTECH-D-18-0057.1
 .. _2014a: https://doi.org/10.1002/qj.2313
 .. _2014b: https://doi.org/10.1088/1367-2630/16/10/105001 
 
