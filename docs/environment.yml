@@ -1,0 +1,11 @@
+name: MicroInverse_docs
+dependencies:
+  - cython
+  - xarray
+  - ipython
+  - pytest
+  - numpydoc
+  - sphinx
+  - sphinx_rtd_theme
+  - pip:
+    - nbsphinx
