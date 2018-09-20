@@ -4,5 +4,5 @@ API
 
 MicroInverse_utils
 ==================
-.. automodule:: MicroInverse.MicroInverse_utils
+.. automodule:: MicroInverse_utils
    :members: load_data
