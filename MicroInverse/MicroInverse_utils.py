@@ -1147,7 +1147,8 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
                 ro    = rot_m(np.radians(angles)) #the sign of the angles should be consistent with whatever the create_A was called with
                 Koffdiag = []
                 for a in range(ro.shape[-1]):
-                    Koffdiag.append(abs(ro[:,:,a].T@Kout2@ro[:,:,a])[0,1])
+                    #Koffdiag.append(abs(ro[:,:,a].T@Kout2@ro[:,:,a])[0,1]) # @ notation is python 3 specific
+                    Koffdiag.append(abs(np.dot(np.dot(ro[:,:,a].T,Kout2),ro[:,:,a]))[0,1]) # np.dot does the same for 2.7 
                 #
                 opta=np.where((Koffdiag)==np.min((Koffdiag)))[0][0]    
                 #
