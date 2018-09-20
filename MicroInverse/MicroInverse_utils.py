@@ -372,7 +372,7 @@ def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month):
                 beta=np.linalg.lstsq(x2, y, rcond=None)[0]
                 y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t);
                 dum_out[:,jj+j]=y-y12mo-y6mo
-           else:
+            else:
                 dum_out[:,jj+j]=y-y12mo
 
 def remove_climatology(var,dt,num_cores=18,rem6month=True):
