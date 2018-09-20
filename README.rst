@@ -9,7 +9,7 @@ MicroInverse
 .. image:: https://img.shields.io/travis/AleksiNummelin/MicroInverse.svg
         :target: https://travis-ci.org/AleksiNummelin/MicroInverse
 
-.. image:: https://readthedocs.org/projects/microInverse/badge/?version=latest
+.. image:: https://readthedocs.org/projects/microinverse/badge/?version=latest
         :target: https://MicroInverse.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
