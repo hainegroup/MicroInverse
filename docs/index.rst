@@ -9,6 +9,7 @@ Welcome to MicroInverse's documentation!
    installation
    usage
    modules
+   api
    contributing
    authors
    history
