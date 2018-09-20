@@ -32,7 +32,26 @@ import MicroInverse
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']
+extensions = ['sphinx.ext.mathjax',
+              'sphinx.ext.autodoc',
+              'sphinx.ext.autosummary',
+              'sphinx.ext.intersphinx',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.extlinks',
+              'sphinx.ext.intersphinx',
+              'numpydoc',
+              'nbsphinx',
+              'IPython.sphinxext.ipython_directive',
+              'IPython.sphinxext.ipython_console_highlighting'
+              ]
+
+autosummary_generate = True
+numpydoc_class_members_toctree = True
+numpydoc_show_class_members = False
+
+# never execute notebooks: avoids lots of expensive imports on rtd
+# https://nbsphinx.readthedocs.io/en/0.2.14/never-execute.html
+nbsphinx_execute = 'never'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
