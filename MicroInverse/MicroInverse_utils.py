@@ -179,32 +179,32 @@ def smooth2D_loop(k2,h2,n,ymax,xmax,jind,iind,lat,lon,datain,data_out,weights_ou
 
 def smooth2D_parallel(lon,lat,datain,n=1,num_cores=30,use_weights=False,weights_only=False,use_median=False,save_weights=False,save_path='', use_dist=False, xscaling=2):
     """
+    2D smoothing of (preferably masked) array datain (should be shape (lat,lon)), will be using halo of n, if n=1 (default) then the each point will be 9 point average. Option to  use distance weights.
     
-    # 2D smoothing of (preferably masked) array datain (should be shape (lat,lon)), will be using halo of n, if n=1 (default) then the each point will be 9 point average. Option to  use distance weights.
-    #
-    # INPUT VARIABLES
-    # 
-    # lon          :: longitudes of the input data (1D or 2D array) 
-    # lat          :: latitudes of the input data (1D or 2D array)
-    # datain       :: input data (should be shape (lat,lon)) and prefereably masked
-    # n            :: Size of the halo over which the smoothing is applied.
-                      If n=1 (default) then the each point will be 9 point average 
-                      Use xscaling to use a different halo in x direction
-    # xscaling     :: Scale the halo in x-direction (default 2), this is reasonable if data is on lat, lon grid
-    # num_cores    :: number of cores to use (default 30)
-    # use_weights  :: Controls if specific weights will be calculated (default is False)
-                      If False then will return the indices of the grid cells that should be used for smoothing
-                      with equal weights (set to 0). If True then weights will be calculated (see below for different options)
-    # use_dist     :: If true then the weights will be calculated based on distance (in km) from the central cell. 
-                      Default is False in which case distance in degrees will be used. 
-    # weights_only :: If True only calculate weights, do not apply to the data (dataout will be empty). 
-                      Default is False i.e. weights will be applied!
-    # use_median   :: Only used if weights_only=False and use_weights=False 
-                      In this case one has an option to smooth either by calculating the median (use_median=True)
-                      or by using the mean of the surrounding points (use_median=False)
-    # save_weights :: If True the weights will be saved to npz file (default is False). 
-                      This is usefull if the domain is large and the smoothing will be applied often 
-    # save_path    :: Location in which the weights will be saved. Default is to save in the work directory
+    Parameters
+    ----------
+     
+    lon          : longitudes of the input data (1D or 2D array) 
+    lat          : latitudes of the input data (1D or 2D array)
+    datain       : input data (should be shape (lat,lon)) and prefereably masked
+    n            : Size of the halo over which the smoothing is applied.
+                   If n=1 (default) then the each point will be 9 point average 
+                   Use xscaling to use a different halo in x direction
+    xscaling     : Scale the halo in x-direction (default 2), this is reasonable if data is on lat, lon grid
+    num_cores    : number of cores to use (default 30)
+    use_weights  : Controls if specific weights will be calculated (default is False)
+                   If False then will return the indices of the grid cells that should be used for smoothing
+                   with equal weights (set to 0). If True then weights will be calculated (see below for different options)
+    use_dist     : If true then the weights will be calculated based on distance (in km) from the central cell. 
+                   Default is False in which case distance in degrees will be used. 
+    weights_only : If True only calculate weights, do not apply to the data (dataout will be empty). 
+                   Default is False i.e. weights will be applied!
+    use_median   : Only used if weights_only=False and use_weights=False 
+                   In this case one has an option to smooth either by calculating the median (use_median=True)
+                   or by using the mean of the surrounding points (use_median=False)
+    save_weights : If True the weights will be saved to npz file (default is False). 
+                   This is usefull if the domain is large and the smoothing will be applied often 
+    save_path    : Location in which the weights will be saved. Default is to save in the work directory
     
     """
     #dataout=ma.zeros(datain.shape)
@@ -312,8 +312,9 @@ def butter_bandstop(lowcut, highcut, fs, btype, order=5):
     return b, a
 
 def butter_bandstop_filter(data, lowcut, highcut, fs, order=5, ax=-1, btype='bandstop'):
-    """bandstop filter, usage:
-       x_grid = MicroInverse_utils.butter_bandstop_filter((x_grid-np.nanmean(x_grid,0)), 7./375., 7/355., 1, order=3,ax=0)
+    """
+    bandstop filter, usage:
+    x_grid = MicroInverse_utils.butter_bandstop_filter((x_grid-np.nanmean(x_grid,0)), 7./375., 7/355., 1, order=3,ax=0)
     """
     b, a = butter_bandstop(lowcut, highcut, fs, btype, order=order)
     y = signal.filtfilt(b, a, data, axis=ax)
@@ -322,15 +323,18 @@ def butter_bandstop_filter(data, lowcut, highcut, fs, order=5, ax=-1, btype='ban
 
 def Implement_Notch_Filter(data, lowcut, highcut, fs=1, order=3, ripple=20, atten=20, filter_type='butter', ax=-1, btype='bandstop'):
     """
-    # Required input defintions are as follows;
-    # fs:               sampling frequency
-    # lowcut,highcut:   The bandwidth bounds you wish to filter
-    # ripple:           The maximum passband ripple that is allowed in db
-    # order:            The filter order.  For FIR notch filters this is best set to 2 or 3,
-    #                   IIR filters are best suited for high values of order.  This algorithm
-    #                   is hard coded to FIR filters
-    # filter_type: 'butter', 'bessel', 'cheby1', 'cheby2', 'ellip'
-    # data:         the data to be filtered
+    Required input defintions are as follows
+    
+    Parameters
+    ----------
+    fs             :  Sampling frequency
+    lowcut,highcut :  The bandwidth bounds you wish to filter
+    ripple         :  The maximum passband ripple that is allowed in db
+    order          :  The filter order.  For FIR notch filters this is best set to 2 or 3,
+                      IIR filters are best suited for high values of order.  This algorithm
+                      is hard coded to FIR filters
+    filter_type    : 'butter', 'bessel', 'cheby1', 'cheby2', 'ellip'
+    data           : the data to be filtered
     """
     nyq  = 0.5 * fs
     # low  = freq - band/2.0
@@ -381,7 +385,26 @@ def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month):
                 dum_out[:,jj+j]=y-y12mo
 
 def remove_climatology(var,dt,num_cores=18,rem6month=True):
-    "remove climatology from a numpy array (!not a masked_array!) which has dimensions (nt,nx*ny)"
+    """
+    Remove annual cycle (fitted sine curve) from a numpy.array which has dimensions (nt,nx*ny)
+    
+    Parameters
+    ----------
+    var       : numpy.array
+                Data from which annual cycle is to be removed.
+                Dimensions (nt,nx*ny), no nan's allowed!
+    dt        : int
+                timestep in days
+    num_cores : int, optional
+                Number of cores for multiprocessing (default 18)
+    rem6month : bool, optional
+                If True (default) also 6 month (180 day) signal is removed
+    
+    Returns
+    -------
+    output    : numpy.array
+                The output array from which the annual cycle has been removed
+    """
     # num_cores=20
     h2=var.shape[-1]//num_cores
     #
@@ -447,10 +470,9 @@ def remove_climatology2(dum,rem6month=True):
 
 def read_files(j,nts,jinds,iinds,filepath,fnames2,var_par,varname,sum_over_depth, depth_lim, depth_lim0, model_data=False):
     """
-    # Read files in parallel. This function should not be called directly, but via load_files() function
-    #
-    # 
-    # var_par should be of shape (len(filenames), time_steps_per_file, ny, nx)
+    Read files in parallel. This function should not be called directly, but via load_files() function
+     
+    var_par should be of shape (len(filenames), time_steps_per_file, ny, nx)
     """
     #
     fname=fnames2[j]
@@ -508,9 +530,9 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
     """
     Load a timeseries of a 2D field (where possibly summing over depth if a 3D variable) in parallel
     
-    INPUT VARIABLES
-    ---------------
-    filepath       : string
+    Parameters
+    ----------
+    filepath       : str
                    Directory path pointing to the data folder
                    Can be empty string if path is included in fnames
     fnames         : list 
@@ -521,19 +543,19 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
                    List of non-nan indices in x-direction
                    Note that one should create jinds and iinds as follows
                    1) create a 2D mask: 1 where nan, else 0
-                      usually landmask for ocean data
+                   usually landmask for ocean data
                    2) then do the following
-                      jinds,iinds=np.where(mask)
-                      jinds,iinds=np.meshgrid(jinds,iinds)
-                      jinds=jinds.flatten()
-                      iinds=iinds.flatten()
-    varname        : string 
+                   jinds,iinds = np.where(mask)
+                   jinds,iinds = np.meshgrid(jinds,iinds)
+                   jinds = jinds.flatten()
+                   iinds = iinds.flatten()
+    varname        : str 
                    Name of the variable of interest in the data file
-    num_cores      : integer
+    num_cores      : int
                    Number of cores to use (default 20)
-    dim4D          : Boolean
+    dim4D          : bool
                    True (default) if a file has more than one timestep
-    sum_over_depth : boolean
+    sum_over_depth : bool
                    False (default) if the data has a depth axis 
                    and one wants a sum over a depth range. 
     depth_lim0     : integer
@@ -546,12 +568,12 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
     dt             : integer
                    Time resolution of the input data in days
     
-    RETURNS
-    ---------------
-    var            : numpy array
+    Returns
+    -------
+    var            : numpy.array
                    Timeseries of the requested variable (varname). 
                    Has the shape (time,jinds,iinds).
-    var_clim       : numpy array
+    var_clim       : numpy.array
                    Climatology of the requested variable (varname). 
                    None if remove_clim=False (default)
     """
@@ -777,8 +799,10 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                 block_vars[2,:,i,j]=fin_inds
 
 def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,rot=False,block_vars2=None,inversion_method='integral',dx_const=None,dy_const=None, DistType='mean',radius=6371):
-    """Invert 2D data using a 5 point stencil. This function should be not be caller directly, instad call the inversion() function 
-       Possibility to use either 'classic' north-south, east-west stencil (rot=False, default), or a stencil rotated 45 deg to the left (east)."""
+    """
+    Invert 2D data using a 5 point stencil. This function should be not be called directly, instad call the inversion() function 
+    Possibility to use either 'classic' north-south, east-west stencil (rot=False, default), or a stencil rotated 45 deg counter-clockwise (west).
+    """
     #
     #
     if not rot:
@@ -1215,45 +1239,75 @@ def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lon
 
 def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, rotated=True, num_cores=18,radius=6371):
     """
-    Invert gridded data using a local stencil. This function will setup variabes and call the parallel_inversion function
+    Invert gridded data using a local stencil. This function will setup variables and call the parallel_inversion function
     which will perform the actual inversion.
     
-    # Input Parameters: 
-    
-    # x_grid                 :: 3D data-array. the shape should be (y,x,time) where instead of (y,x) plane
-                                one could also use (z,x) or (y,z) plane 
-    # block_rows, block_cols :: (y, x) indices, should include all points that are not nans
-                                for example block_rows, block_cols = np.where(np.isfinite(np.sum(x_grid,-1)))
-    # block_lon, block_lat   :: 2D longitude and latitude of shape (y,x)
-    # block_num_lons         :: x_grid.shape[1], x-dimension
-    # block_num_lats         :: x_grid.shape[0], y-dimension
-    # block_num_samp         :: x_grid.shape[-1], time-dimension
-    # Stencil_center         :: For a 5 point stencil should be 2 (for a 9 point stencil should be 4) 
-    # Stencil_size           :: 5 point stencil is recommned (i.e. set to 5)
-    # Tau                    :: Time lag. Units are the time units of x_grid; 1 day lag for daily data would be lag=1 
-    # Dt_secs                :: Time resolution of x_grid. For daily data Dt_secs=3600*24
-    # inversion_method=      :: Inversion method. We suggest 'integral' (default) which is domumented in Nummelin et al (2018).
-    # dx_const, dy_const     :: If your data is on a constant x,y grid give constant dx and dy in meters. Otherwise dx and dy 
-                                are calculated from block_lon,block_lat
-    # b_9points              :: If you wish to use a 9 point stencil, this is experimental and not working properly (defaults to False)
-    # rotate                 :: If False (default) the inversion will be done on a East-West, North-South stencil.
-                                If True the inversion will be done on a 45 degree rotated (counter-clockwise) stencil.
-                                Note that in this case U will be the (Southwest - Northeast) component and 
-                                V will be the (Southeast - Northwest) component. 
-    # num_cores              :: Number of cores to use for the inversion (defaults to 18); should be adjusted to your system.
-    # radius                 :: Radius of the planet in km, defaults to Earth (6371 km)
+    Parameters 
+    ----------
+    x_grid                 : numpy.array
+                             Input data of shape (y,x,time), where instead of (y,x) plane
+                             one could also use (z,x) or (y,z) plane. 
+    block_rows             : numpy.array
+                             y-indices, should include all points that are not nans
+    block_cols             : numpy.array
+                             x-indices, should include all points that are not nans
+                             for example block_rows, block_cols = np.where(np.isfinite(np.sum(x_grid,-1)))
+    block_lon              : numpy.array
+                             2D longitude of shape (y,x)
+    block_lat              : numpy.array
+                             2D latitude of shape (y,x)
+    block_num_lons         : numpy.array
+                             x_grid.shape[1], x-dimension
+    block_num_lats         : np.array
+                             x_grid.shape[0], y-dimension
+    block_num_samp         : np.array
+                             x_grid.shape[-1], time-dimension
+    Stencil_center         : int
+                             For a 5 point stencil should be 2 (for a 9 point stencil should be 4) .
+    Stencil_size           : int
+                             5 point stencil is recommned (i.e. set to 5) - 9 point stencil is beta.
+    Tau                    : int
+                             Time lag. Units are the time units of x_grid: 1 day lag for daily data would be lag=1. 
+    Dt_secs                : int
+                             Time resolution of x_grid. For daily data Dt_secs=3600*24
+    inversion_method       : str, optional
+                             Inversion method. We suggest 'integral' (default) which is domumented in Nummelin et al (2018).
+    dx_const               : int or numpy.array, optional
+                             Grid size in meters. Default is None in which case dx and dy are calculated from block_lon and block_lat
+    dy_const               : int or numpy.array, optiona
+                             Grid size in meters. Default is None in which case dx and dy are calculated from block_lon and block_lat
+    b_9points              : bool
+                             If True a 9 point stencil (beta) will be used, default is False (recommened)
+    rotate                 : bool
+                             If False (default) the inversion will be done on a East-West, North-South stencil.
+                             If True the inversion will be done on a 45 degree rotated (counter-clockwise) stencil.
+                             Note that in this case U will be the (Southwest - Northeast) component and 
+                             V will be the (Southeast - Northwest) component. 
+    num_cores              : int
+                             Number of cores to use for the inversion (default is 18); should be adjusted to your system.
+    radius                 : float
+                             Radius of the planet in km, default is Earth (6371 km)
 
-    returns U, V, Kx, Ky, Kxy, Kyx, R, B
-    
-    # U   :: zonal velocity [m s-1] (or if rotate=True will be Southwest - Northeast velocity)
-    # V   :: meridional velocity [m s-1] (or if rotate=True will be Southeast - Northwest velocity)
-    # Kx  :: zonal diffusivity [m2 s-1] (or if rotate=True will be None)
-    # Kx  :: meridional diffusivity [m2 s-1] (or if rotate=True will be None)
-    # Kxy :: if rotate=True will be (Southwest - Northeast) component of diffusivity [m2 s-1] (None if rotate=False)
-    # Kyx :: if rotate=True will be (Southeast - Northwest) component of diffusivity [m2 s-1] (None if rotate=False)
-    # R   :: Decay timescale in seconds
-    # B   :: Transport operator.
-
+    Returns
+    -------
+    U                     : numpy.array
+                            Zonal velocity [m s-1] (or if rotate=True will be Southwest - Northeast velocity)
+    V                     : numpy.array
+                            Meridional velocity [m s-1] (or if rotate=True will be Southeast - Northwest velocity)
+    Kx                    : numpy.array 
+                            Zonal diffusivity [m2 s-1] (or if rotate=True will be None)
+    Kx                    : numpy.array
+                            Meridional diffusivity [m2 s-1] (or if rotate=True will be None)
+    Kxy                   : numpy.array
+                            If rotate=True will be Southwest - Northeast component of diffusivity [m2 s-1] (None if rotate=False)
+                            If b_9points=True, will be the off-diagonal part of the diffusion tensor.
+    Kyx                   : numpy.array
+                            If rotate=True will be Southeast - Northwest component of diffusivity [m2 s-1] (None if rotate=False)
+                            If b_9points=True, will be the off-diagonal part of the diffusion tensor.
+    R                     : numpy.array
+                            Decay timescale in seconds
+    B                     : numpy.array
+                            Transport operator.
     """
 
     if b_9points:

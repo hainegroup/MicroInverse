@@ -4,5 +4,5 @@ API
 
 MicroInverse_utils
 ==================
-.. automodule:: MicroInverse_utils
-   :members: load_data
+.. automodule:: MicroInverse.MicroInverse_utils
+   :members: inversion, load_data, remove_climatology

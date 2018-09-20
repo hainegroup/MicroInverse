@@ -1,7 +1,7 @@
 name: MicroInverse_docs
 dependencies:
-  - cython
   - xarray
+  - joblib
   - ipython
   - pytest
   - numpydoc
