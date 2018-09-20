@@ -116,10 +116,13 @@ def griddata_interpolation(values, vtx, wts):
 def smooth2D_loop(k2,h2,n,ymax,xmax,jind,iind,lat,lon,datain,data_out,weights_out,use_weights,weights_only,use_median,use_dist,xscaling):
     """This is the loop to be run paralllel by smooth2D_parallel. Should not be called directly. """
     for k in range(k2,min([k2+h2,len(jind)])):
-        j=jind[k]; i=iind[k]
-        nx=xscaling*n 
-        jind2=[]; iind2=[]; dxy=[]
-        c=0
+        j     = jind[k]
+        i     = iind[k]
+        nx    = xscaling*n 
+        jind2 = []
+        iind2 = []
+        dxy   = []
+        c     = 0
         for ib in range(-nx,nx+1): 
             for jb in range(-n,n+1):
                 if ((j+jb)>=ymax or (j+jb)<0):
@@ -133,7 +136,8 @@ def smooth2D_loop(k2,h2,n,ymax,xmax,jind,iind,lat,lon,datain,data_out,weights_ou
                 else:
                     iind2.append(i+ib)
                 if datain.mask[jind2[-1],iind2[-1]]:
-                    jind2[-1]=j; iind2[-1]=i
+                    jind2[-1]=j
+                    iind2[-1]=i
                 if use_weights and use_dist:
                     if len(lon.shape)==1:
                         dxy.append(distance([lat[j],lon[i]],[lat[jind2[c]],lon[iind2[c]]]))
@@ -242,7 +246,8 @@ def smooth_with_weights_loop(k2,h2,datain,data_out,weights,jind,iind,use_weights
         for k in range(k2,min([k2+h2,len(jind)])):
             if k%10000.==0:
                 print(k)
-            j=jind[k]; i=iind[k]
+            j=jind[k]
+            i=iind[k]
             c=0
             if use_weights:
                 data_out[j,i]=ma.sum(datain[weights[k,:,1].astype('int'),weights[k,:,2].astype('int')]*weights[k,:,0])/ma.sum(weights[k,:,0])
@@ -349,14 +354,14 @@ def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month):
     f2=2*dt/365.
     t=np.arange(dum1.shape[0])
     #
-    x1 = np.ones((len(t),3));
-    x1[:,1] = np.cos((2*np.pi)*f1*t);
-    x1[:,2] = np.sin((2*np.pi)*f1*t);
+    x1 = np.ones((len(t),3))
+    x1[:,1] = np.cos((2*np.pi)*f1*t)
+    x1[:,2] = np.sin((2*np.pi)*f1*t)
     #
     if rem6month:
-        x2 = np.ones((len(t),3));
-        x2[:,1] = np.cos((2*np.pi)*f2*t);
-        x2[:,2] = np.sin((2*np.pi)*f2*t);
+        x2 = np.ones((len(t),3))
+        x2[:,1] = np.cos((2*np.pi)*f2*t)
+        x2[:,2] = np.sin((2*np.pi)*f2*t)
     #
     inds=np.where(np.isfinite(dum1[0,:]))[0]
     #
@@ -365,12 +370,12 @@ def remove_climatology_loop(jj,h2,dum,dum_out,dt,rem6month):
             y = dum1[:,j]
             # fit one year signal
             beta = np.linalg.lstsq(x1, y, rcond=None)[0]
-            y12mo = beta[0]+beta[1]*np.cos((2*np.pi)*f1*t)+beta[2]*np.sin((2*np.pi)*f1*t);
+            y12mo = beta[0]+beta[1]*np.cos((2*np.pi)*f1*t)+beta[2]*np.sin((2*np.pi)*f1*t)
             #
             if rem6month:
                 # fit 6 month signal
                 beta=np.linalg.lstsq(x2, y, rcond=None)[0]
-                y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t);
+                y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t)
                 dum_out[:,jj+j]=y-y12mo-y6mo
             else:
                 dum_out[:,jj+j]=y-y12mo
@@ -421,19 +426,19 @@ def remove_climatology2(dum,rem6month=True):
     for j in range(dum.shape[-1]):
         y = dum[:,j].data
         # fit one year signal
-        x = np.ones((len(y),3));
-        x[:,1] = np.cos((2*np.pi)*f1*t);
-        x[:,2] = np.sin((2*np.pi)*f1*t);
+        x = np.ones((len(y),3))
+        x[:,1] = np.cos((2*np.pi)*f1*t)
+        x[:,2] = np.sin((2*np.pi)*f1*t)
         beta, resid, rank, sigma = np.linalg.lstsq(x, y)
-        y12mo = beta[0]+beta[1]*np.cos((2*np.pi)*f1*t)+beta[2]*np.sin((2*np.pi)*f1*t);
+        y12mo = beta[0]+beta[1]*np.cos((2*np.pi)*f1*t)+beta[2]*np.sin((2*np.pi)*f1*t)
         #
         # fit 6 month signal
         if rem6month:
-            x = np.ones((len(y),3));
-            x[:,1] = np.cos((2*np.pi)*f2*t);
-            x[:,2] = np.sin((2*np.pi)*f2*t);
+            x = np.ones((len(y),3))
+            x[:,1] = np.cos((2*np.pi)*f2*t)
+            x[:,2] = np.sin((2*np.pi)*f2*t)
             beta, resid, rank, sigma = np.linalg.lstsq(x, y)
-            y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t);
+            y6mo = beta[0]+beta[1]*np.cos((2*np.pi)*f2*t)+beta[2]*np.sin((2*np.pi)*f2*t)
             dum2[:,j]=y-y12mo-y6mo
         else:
             dum2[:,j]=y-y12mo
@@ -582,7 +587,7 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
         # this is the on off switch for removing the climatology
         var_clim=var_clim*int(remove_clim) 
         var=var_par[0,:int(nts[0]),:]-var_clim[:int(nts[0]),:]
-        # concatenate the data - note that here nts is used to strip down the 366th day when it's not a leap year; 
+        # concatenate the data - note that here nts is used to strip down the 366th day when it's not a leap year
         # and include the 366th day when it is a leap year
         for j in range(1,len(fnames)):
             print(j)
@@ -599,12 +604,13 @@ def load_data(filepath,fnames,jinds,iinds,varname,num_cores=20,dim4D=True, sum_o
             var2=np.ones((year1-year0+1,int(np.ceil(366./dt)),var.shape[1]))*np.nan
             #
             for j, fname in enumerate(fnames):
-                year=int(fname[-20:-16])
-                month=int(fname[-16:-14])
-                day=int(fname[-14:-12])
-                c,c1=datetime.date(year,month,day).isocalendar()[:2]
-                c=c-year0; c1=c1-1
-                var2[c,c1,:]=var[j,:]
+                year  = int(fname[-20:-16])
+                month = int(fname[-16:-14])
+                day   = int(fname[-14:-12])
+                c,c1  = datetime.date(year,month,day).isocalendar()[:2]
+                c     = c-year0
+                c1    = c1-1
+                var2[c,c1,:] = var[j,:]
                 #
             var_clim=np.nanmean(var2,0)
             ind=np.where(np.nansum(var2,-1)[0,:]>0)[0]
@@ -636,15 +642,16 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
         if np.isfinite(ma.sum(x_grid[i,j,:])):
             xn = np.zeros((Stencil_size,block_num_samp))
             # count non-border neighbors of grid point
-            numnebs = 0;
+            numnebs = 0
             #
             for inn in range(i-1,i+2):
                 for jnn in range(j-1,j+2):
                     if np.isfinite(x_grid[inn,jnn,0]):
-                        numnebs=numnebs+1;
+                        numnebs=numnebs+1
             # only invert if point has 9 non-border neighbors
             if numnebs==9:
-                ib = i; jb=j;
+                ib = i
+                jb = j
                 #
                 sads = [-1,+1,-2,+2,-3,+3,-4,+4]  # indices for ds - Stencil_center will be the central point - these are spiraling out
                 jads = [-1,+1, 0, 0,-1,+1,+1,-1]  # left,right,down,up,down-left,up-right,right-down,left-up
@@ -664,9 +671,9 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                 # CALCULATE THE DISTANCE BETWEEN THE CENTRAL AND SURROUNDING POINTS
                 for s,ss in enumerate(s_ads):
                     #
-                    ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
-                    dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
-                    dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000;
+                    ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                    dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                    dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000
                     #
                 ang=np.arctan2(dy,dx)*180/np.pi
                 ang[np.where(ang<0)]=ang[np.where(ang<0)]+360
@@ -701,7 +708,7 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                 # use only those stencil members that are finite - setting others to zero
                 fin_inds=np.isfinite(xn[:,0])
                 xn[np.where(~fin_inds)[0],:]=0
-                Stencil_center2=Stencil_center;
+                Stencil_center2=Stencil_center
                 # integral method
                 if inversion_method in ['integral']:
                     xnlag = np.concatenate((xn[:,Tau:], np.zeros((xn.shape[0],Tau))),axis=1)
@@ -711,8 +718,8 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                     b[ma.where(np.isnan(b))]=0
                     tmp = np.dot(a.data, np.linalg.pinv(b.data))  #pseudo-inverse
                     # tmp = np.dot(a.data, np.linalg.inv(b.data))
-                    tmp[np.isnan(tmp)] = 0;
-                    tmp[np.isinf(tmp)] = 0;
+                    tmp[np.isnan(tmp)] = 0
+                    tmp[np.isinf(tmp)] = 0
                     #
                     if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10:
                         try:
@@ -723,23 +730,23 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                             bn = np.real(bb[Stencil_center,:])
                     else:
                         bn=np.zeros(Stencil_size)
-                        bn[~np.isfinite(bn)]   = 0;
+                        bn[~np.isfinite(bn)]   = 0
                 # inverse by derivative method
                 elif inversion_method in ['derivative']:
-                    xnfut     = np.concatenate((xn[:,1:], np.zeros((xn.shape[0],1))),axis=1);
+                    xnfut     = np.concatenate((xn[:,1:], np.zeros((xn.shape[0],1))),axis=1)
                     xnlag     = np.concatenate((np.zeros((xn.shape[0],Tau)), xn[:,1:xn.shape[1]-Tau+1]),axis=1)
                     a=ma.dot((xnfut-xn),xnlag.T)
                     b=ma.dot(xn,xnlag.T)
                     a[ma.where(np.isnan(a))]=0
                     b[ma.where(np.isnan(b))]=0
                     tmp = np.dot(a.data, np.linalg.pinv(b.data))
-                    bn_matrix = (1./Dt_secs)*tmp;
-                    bn        = np.real(bn_matrix[Stencil_center2,:]);
-                    bn[np.isnan(bn)]   = 0;
-                    bn[np.isinf(bn)]   = 0;
+                    bn_matrix = (1./Dt_secs)*tmp
+                    bn        = np.real(bn_matrix[Stencil_center2,:])
+                    bn[np.isnan(bn)]   = 0
+                    bn[np.isinf(bn)]   = 0
                 # Alternative integral method
                 elif inversion_method in ['integral_2']:
-                    xnfut     = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1);
+                    xnfut     = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1)
                     xnlag     = np.concatenate((np.zeros((Stencil_size,Tau)), xn[:,1:xn.shape[1]-Tau+1]),axis=1)
                     a=ma.dot(xnfut,xnlag.T)
                     b=ma.dot(xn,xnlag.T)
@@ -747,8 +754,8 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                     b[ma.where(np.isnan(b))]=0
                     # tmp = np.linalg.lstsq(b.data.T, a.data.T)[0] #one way to do it
                     tmp = np.dot(a.data, np.linalg.pinv(b.data))  #another way
-                    tmp[np.isnan(tmp)] = 0;
-                    tmp[np.isinf(tmp)] = 0;
+                    tmp[np.isnan(tmp)] = 0
+                    tmp[np.isinf(tmp)] = 0
                     if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10: #check that not all the values are the same
                         try:
                             bb = (1./(Dt_secs))*linalg.logm(tmp) #this is not working for somereason
@@ -758,7 +765,7 @@ def parallel_inversion_9point(j,x_grid,block_vars,Stencil_center,Stencil_size,bl
                            bn = np.real(bb[Stencil_center,:])
                     else:
                         bn=np.zeros(Stencil_size)
-                    bn[~np.isfinite(bn)]   = 0;
+                    bn[~np.isfinite(bn)]   = 0
                 else:
                     bn = np.zeros(tmp.shape[0])
                 ############################################
@@ -806,7 +813,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 # USING MEAN DISTANCE
                 ds=np.zeros(Stencil_size)
                 for s,ss in enumerate(sads):
-                    ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]],radius=radius)*1000;
+                    ds[Stencil_center+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+iads[s],jb+jads[s]],block_lon[ib+iads[s],jb+jads[s]]],radius=radius)*1000
                 #
                 xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:]
                 xn[Stencil_center,:] = x_grid[i,j,:]
@@ -821,7 +828,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 ds=np.zeros(len(s_ads)+1)
                 ang=np.zeros(len(s_ads)+1)
                 for s,ss in enumerate(s_ads):
-                    ds[cent+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]],radius=radius)*1000;
+                    ds[cent+ss]=distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]],radius=radius)*1000
                 ang[cent+np.array(s_ads)]=np.arctan2(i_ads,j_ads)*180/np.pi
                 ang[np.where(ang<0)]=ang[np.where(ang<0)]+360
                 #
@@ -848,18 +855,19 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 # if the 
                 xn[Stencil_center+np.array(sads),:]=x_grid[i+np.array(iads),j+np.array(jads),:]
                 xn[Stencil_center,:] = x_grid[i,j,:]
-                dx=dx_const; dy=dy_const
+                dx=dx_const
+                dy=dy_const
             else:
                 # ORIGINAL VERSION
                 # calc distances
-                dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000;
-                dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000;
+                dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000
+                dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000
                 # correct negative distances due to blocks spanning meridian
                 if (block_lon[ib,jb]*block_lon[ib,jb+1]<0):
-                    dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000;
+                    dx = distance([block_lat[ib,jb],block_lon[ib,jb-1]],[block_lat[ib,jb],block_lon[ib,jb]],radius=radius)*1000
                 #
                 if (block_lat[ib,jb]*block_lat[ib+1,jb]<0):
-                    dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000;
+                    dy = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib-1,jb],block_lon[ib,jb]],radius=radius)*1000
                 # fill xn with timeseries of center point and neighbors
                 for ci in range(Stencil_center):
                     if ci==0:
@@ -879,8 +887,8 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                     a[ma.where(np.isnan(a))]=0
                     b[ma.where(np.isnan(b))]=0
                     tmp = np.dot(a.data, np.linalg.pinv(b.data))
-                    tmp[np.isnan(tmp)] = 0;
-                    tmp[np.isinf(tmp)] = 0;
+                    tmp[np.isnan(tmp)] = 0
+                    tmp[np.isinf(tmp)] = 0
                     if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10:
                         try:
                             bb = (1./(tau*Dt_secs))*linalg.logm(tmp)
@@ -889,7 +897,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                     else:
                         bns[:,tau-1] = np.real(bb[Stencil_center,:])
                 #
-                bns[~np.isfinite(bns)] = 0;
+                bns[~np.isfinite(bns)] = 0
                 # select the case when the central cell is most negative
                 b_ind=np.where(bns[Stencil_center,:].squeeze()==np.min(bns[Stencil_center,:],0))[0]
                 if len(b_ind)>1:
@@ -899,7 +907,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             elif inversion_method in ['integral']:
                 # inverse by integral method
                 xnlag = np.concatenate((xn[:,Tau:], np.zeros((Stencil_size,Tau))),axis=1)
-                # tmp = (np.dot(xnlag,xn.T))/(np.dot(xn,xn.T));
+                # tmp = (np.dot(xnlag,xn.T))/(np.dot(xn,xn.T))
                 # in matlab: tmp = (xnlag*xn')/(xn*xn') let's take a=xnlag*xn' and b=xn*xn'
                 # this line in matlab basically means solving for xb=a
                 # what we can do in python is # xb = a: solve b.T x.T = a.T
@@ -911,8 +919,8 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 b[ma.where(np.isnan(b))]=0
                 # tmp = np.linalg.lstsq(b.data.T, a.data.T)[0] # one way to do it
                 tmp = np.dot(a.data, np.linalg.pinv(b.data))  # another way
-                tmp[np.isnan(tmp)] = 0;
-                tmp[np.isinf(tmp)] = 0;
+                tmp[np.isnan(tmp)] = 0
+                tmp[np.isinf(tmp)] = 0
                 if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10: #check that not all the values are the same
                     try:
                         bb = (1./(Tau*Dt_secs))*linalg.logm(tmp)
@@ -923,13 +931,13 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 else:
                     bn=np.zeros(Stencil_size)
                 #
-                bn[~np.isfinite(bn)]   = 0;
+                bn[~np.isfinite(bn)]   = 0
             #
             # inverse by derivative method
             elif inversion_method in ['derivative']:
                 # central differential
-                xnfut  = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1);
-                xnpast = np.concatenate((np.zeros((Stencil_size,1)), xn[:,:-1]),axis=1);
+                xnfut  = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1)
+                xnpast = np.concatenate((np.zeros((Stencil_size,1)), xn[:,:-1]),axis=1)
                 xnlag  = np.concatenate((np.zeros((Stencil_size,Tau)), xn[:,1:xn.shape[1]-Tau+1]),axis=1)
                 a=ma.dot((xnfut-xnpast),xnlag.T)
                 b=ma.dot(xn,xnlag.T)
@@ -938,14 +946,14 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 #tmp = np.linalg.lstsq(b.data.T, a.data.T)[0] #one way to do it
                 tmp = np.dot(a.data, np.linalg.pinv(b.data))
                 if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10:
-                    bn_matrix            = (0.5/Dt_secs)*tmp; #(1./Dt_secs)*tmp;
-                    bn                   = np.real(bn_matrix[Stencil_center,:]);
-                    bn[~np.isfinite(bn)] = 0;
+                    bn_matrix            = (0.5/Dt_secs)*tmp
+                    bn                   = np.real(bn_matrix[Stencil_center,:])
+                    bn[~np.isfinite(bn)] = 0
                 else:
                     bn                   = np.zeros(Stencil_size)
             elif inversion_method in ['integral_2']:
                 # alternative integral - but no wit backward time difference
-                xnfut     = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1);
+                xnfut     = np.concatenate((xn[:,1:], np.zeros((Stencil_size,1))),axis=1)
                 xnlag     = np.concatenate((np.zeros((Stencil_size,Tau)), xn[:,1:xn.shape[1]-Tau+1]),axis=1)
                 a=ma.dot(xnfut,xnlag.T)
                 b=ma.dot(xn,xnlag.T)
@@ -953,8 +961,8 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                 b[ma.where(np.isnan(b))]=0
                 #tmp = np.linalg.lstsq(b.data.T, a.data.T)[0] #one way to do it
                 tmp = np.dot(a.data, np.linalg.pinv(b.data))  #another way
-                tmp[np.isnan(tmp)] = 0;
-                tmp[np.isinf(tmp)] = 0;
+                tmp[np.isnan(tmp)] = 0
+                tmp[np.isinf(tmp)] = 0
                 if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10: #check that not all the values are the same
                     try:
                         bb = (1./(Dt_secs))*linalg.logm(tmp) #
@@ -964,16 +972,16 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
                         bn = np.real(bb[Stencil_center,:])
                 else:
                     bn=np.zeros(Stencil_size)
-                bn[~np.isfinite(bn)]   = 0;
+                bn[~np.isfinite(bn)]   = 0
             ############################################
             # -- solve for U K and R from row of bn -- #
             ############################################
             #
-            block_vars[0,i,j] = -dx*(bn[Stencil_center+1]-bn[Stencil_center-1]); # u
-            block_vars[1,i,j] = -dy*(bn[Stencil_center+2]-bn[Stencil_center-2]); # v
-            block_vars[2,i,j] = 1./2*dx**2*(bn[Stencil_center-1]+bn[Stencil_center+1]); # Kx
-            block_vars[3,i,j] = 1./2*dy**2*(bn[Stencil_center-2]+bn[Stencil_center+2]); # Ky
-            block_vars[4,i,j] = -1./(bn[Stencil_center]+ 2*block_vars[2,i,j]/dx**2 + 2*block_vars[3,i,j]/dy**2); # R
+            block_vars[0,i,j] = -dx*(bn[Stencil_center+1]-bn[Stencil_center-1]) # u
+            block_vars[1,i,j] = -dy*(bn[Stencil_center+2]-bn[Stencil_center-2]) # v
+            block_vars[2,i,j] = 1./2*dx**2*(bn[Stencil_center-1]+bn[Stencil_center+1]) # Kx
+            block_vars[3,i,j] = 1./2*dy**2*(bn[Stencil_center-2]+bn[Stencil_center+2]) # Ky
+            block_vars[4,i,j] = -1./(bn[Stencil_center]+ 2*block_vars[2,i,j]/dx**2 + 2*block_vars[3,i,j]/dy**2) # R
             if not (block_vars2 is None):
                 block_vars2[:len(bn),i,j] = bn 
 
@@ -1019,7 +1027,8 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
     ainds[np.where(ainds>=360)] = ainds[np.where(ainds>=360)]-360
     #
     for i in range(2,block_num_lats-2):
-        ib = i; jb=j;
+        ib = i
+        jb = j
         if np.isfinite(x_grid[ib,jb,0]):
             # empty array to hold the interpolated data
             xns=np.zeros((na,Stencil_size,block_num_samp))
@@ -1029,9 +1038,9 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
             dy  = np.zeros(len(s_ads)+1) #this is the y (meridional) component of that
             ang = np.zeros(len(s_ads)+1)
             for s,ss in enumerate(s_ads):
-                ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
-                dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000;
-                dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000;
+                ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000
             # DEFINE A TARGET RADIUS - MAYBE BEST TO MAKE SURE IT'S REASONABLY FAR FROM THE CENTRAL POINT 
             # Probably a mean radius makes most sense in the end - should probably be close to the 'true' resolution of the data
             # i.e. not necessarely the resolution the data is provided.
@@ -1120,8 +1129,8 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
                 a[ma.where(np.isnan(a))] = 0
                 b[ma.where(np.isnan(b))] = 0
                 tmp   = np.dot(a.data, np.linalg.pinv(b.data))
-                tmp[np.isnan(tmp)] = 0;
-                tmp[np.isinf(tmp)] = 0;
+                tmp[np.isnan(tmp)] = 0
+                tmp[np.isinf(tmp)] = 0
                 if np.isfinite(np.sum(tmp)) and ma.sum(abs(tmp-tmp[0]))>1E-10:
                     try:
                         bb = (1./(Tau*Dt_secs))*linalg.logm(tmp)
@@ -1131,13 +1140,13 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
                         bn = np.real(bb[Stencil_center,:])
                 else:
                     bn = np.zeros(Stencil_size)
-                bn[~np.isfinite(bn)] = 0;
+                bn[~np.isfinite(bn)] = 0
                 #
-                bvar2[0,xx] = -dr*(bn[Stencil_center+1]-bn[Stencil_center-1]); # u
-                bvar2[1,xx] = -dr*(bn[Stencil_center+2]-bn[Stencil_center-2]); # v
-                bvar2[2,xx] = 1./2*dr**2*(bn[Stencil_center-1]+bn[Stencil_center+1]); # Kx
-                bvar2[3,xx] = 1./2*dr**2*(bn[Stencil_center-2]+bn[Stencil_center+2]); # Ky
-                bvar2[4,xx] = -1./np.nansum(bn); #bn[Stencil_center] #-1./np.nansum(bn); # R
+                bvar2[0,xx] = -dr*(bn[Stencil_center+1]-bn[Stencil_center-1]) # u
+                bvar2[1,xx] = -dr*(bn[Stencil_center+2]-bn[Stencil_center-2]) # v
+                bvar2[2,xx] = 1./2*dr**2*(bn[Stencil_center-1]+bn[Stencil_center+1]) # Kx
+                bvar2[3,xx] = 1./2*dr**2*(bn[Stencil_center-2]+bn[Stencil_center+2]) # Ky
+                bvar2[4,xx] = -1./np.nansum(bn) #bn[Stencil_center] #-1./np.nansum(bn) # R
             # Find the full diffusion matrix - create_A gives rotation matrix AA (done outside the loop)
             K     = np.vstack([bvar2[2,:],bvar2[3,:]]).T.flatten()
             Kout  = np.dot(np.dot(np.linalg.inv(np.dot(AA.T,AA)),AA.T),K)
@@ -1158,7 +1167,7 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
             else:          
                 bvar[0,ib,jb] = np.nanmedian(bvar2[0,:]*np.cos(np.radians(angles))-bvar2[1,:]*np.sin(np.radians(angles))) # rotate back to x-y plane
                 bvar[1,ib,jb] = np.nanmedian(bvar2[0,:]*np.sin(np.radians(angles))+bvar2[1,:]*np.cos(np.radians(angles))) # rotate back to x-y plane
-                bvar[5,ib,jb] = np.nanmedian(bvar2[4,:]);
+                bvar[5,ib,jb] = np.nanmedian(bvar2[4,:])
             #
             bvar[2,ib,jb] = Kout[0]
             bvar[3,ib,jb] = Kout[1]
@@ -1248,7 +1257,8 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     """
 
     if b_9points:
-        Stencil_center=4;Stencil_size=9
+        Stencil_center=4
+        Stencil_size=9
         #dumshape=(x_grid.shape[0],block_num_lats,block_num_lons) #
         folder1    = tempfile.mkdtemp()
         path1      =  os.path.join(folder1, 'dum1.mmap')
@@ -1273,8 +1283,8 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     #
     if b_9points:
         Parallel(n_jobs=num_cores)(delayed(parallel_inversion_9point)(j,x_grid2,block_vars,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs,inversion_method=inversion_method,radius=radius) for j in range(2,block_num_lons-2))
-        Browsp      = block_rows[1:-1];
-        Bcolsp      = block_cols[1:-1];
+        Browsp      = block_rows[1:-1]
+        Bcolsp      = block_cols[1:-1]
         m           = Stencil_center
         block_vars2 = block_vars[0,:,:,:].squeeze()
         #
@@ -1383,7 +1393,8 @@ def fitEllipse(x,y):
     D =  np.hstack((x*x, x*y, y*y, x, y, np.ones_like(x)))
     S = np.dot(D.T,D)
     C = np.zeros([6,6])
-    C[0,2] = C[2,0] = 2; C[1,1] = -1
+    C[0,2] = C[2,0] = 2
+    C[1,1] = -1
     E, V =  linalg.eig(np.dot(linalg.inv(S), C))
     n = np.argmax(np.abs(E))
     a = V[:,n]
@@ -1475,8 +1486,8 @@ def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=N
     dt[np.where(dt<Taus[0])]=Taus[0]
     # find other taus
     for t,tau in enumerate(Taus[:-1]):
-        dt[np.where(ma.logical_and(dt>tau,dt<=Taus[t+1]))]=Taus[t+1];
-    dt[np.where(dt>Taus[-1])]=Taus[-1];
+        dt[np.where(ma.logical_and(dt>tau,dt<=Taus[t+1]))]=Taus[t+1]
+    dt[np.where(dt>Taus[-1])]=Taus[-1]
     # refine based on the diffusivity criteria
     if K_lim:
         c=0
