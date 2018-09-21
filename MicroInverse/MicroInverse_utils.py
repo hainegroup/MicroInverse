@@ -1441,6 +1441,183 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     #return U_global,V_global,Kx_global,Ky_global,Kxy_global,Kyx_global,R_global
     return U_ret,V_ret,Kx_ret,Ky_ret,Kxy_ret,Kyx_ret,R_ret,block_vars2[:Stencil_size,1:-1,1:-1]
 
+
+def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=None, xcoord=None, max_GB=2, num_cores=18, inversion_method='integral', degres=10, dr_in=np.zeros(1), interp_method='griddata', radius=6371, wrap_around=True):
+    '''
+    PLACE HOLDER FOR XARRAY WRAPPER
+    IDEA: CALL WITH XARRAY.DATA_ARRAY, 
+          PERFORM THE INVERSION,
+          POSSIBLY COMBINE_TAUS AS WELL.
+          RETURN XARRAY.
+    
+    Parameters
+    ----------
+    data         : xarray.DataArray
+                   3D input data with coordinates tcoord, xcoord, ycoord
+    Taus         : list
+                   time lags (in timesteps) in which to perform the inversion
+    Dt_secs      : float, optiona
+                   Time step if seconds, if None (default) deduced from the tcoord             
+    combine_taus : bool, optional
+                   if True (default), and len(Taus)>1, the inversion will be done
+                   at all Taus, and the results will be combined with combine_Taus.
+                   If False, the results will not be combined and array with dimensions
+                   (Taus, ycoord, xcoord) will be returned
+    tcoord       : str, optional
+                   Name of the time coordinate (time), default is None,
+                   in which case it is taken from tcoord, ycoord, xcoord = data.dims
+    ycoord       : str, optional
+                   Name of the y coordinate (latitude), default is None,
+                   in which case it is taken from tcoord, ycoord, xcoord = data.dims
+    xcoord       : str, optional
+                   Name of the x coordinate (longitude), default is None,
+                   in which case it is taken from tcoord, ycoord, xcoord = data.dims
+    max_GB       : int, optional
+                   Maximum size of RAM in gigabytes, default is 2. If the size of the
+                   data is larger than max_GB then the inversion is done in parts. Otherwise
+                   the whole array is inverted at once.
+    num_cores    : int, optional
+                   number of cores to use in parallel (default=18)
+    inversion_method : str, optional
+                       which inversion method to use, currently only 'integral' (default) is implemented
+    degres           : int, optional
+                       resolution of rotations at which the inversions will be performed (default=10)
+    dr_in            : numpy.array, optional
+                       distance at which the data will be interpolated before the inversion default is np.zeros(1), 
+                       in which case the mean of the 4 surrounding cells will be used. Should reflect the grid size.
+    interp_method    : str, optional
+                       which method to use for interpolation, dedault is 'griddata', a faster but less accurate is 'bilinear'
+                       under the hood both will use bilinear interpolation, but 'bilinear' is more crude implementation, whereas
+                       'griddata' uses the scipy implementation.
+    radius           : float, optional
+                       Radius of the planet for distance calculation in km, default is 6371 (earth)
+    wrap_around      : bool
+                       If True assumes global data and wraps around longitude, if False doesn't wrap around
+    
+    Returns
+    -------
+    data_out     : xarray.Dataset
+                   The output data which includes U (X velocity [m s-1]), V (Y velocity [m s-1]), 
+                   Kx (X diffusivity [m2 s-1]), Ky (Y diffusivity [m2 s-1]), Kxy (off-diagonal component of diffusivity [m2 s-1]),
+                   R (Decay timescale in seconds), DR (scale at which the inversion is done), Taus, ycoord, xcoord from the original data.
+                   Note that the inversion will be done on the original grid without rotations i.e. x, y refer to the directions on the 
+                   original grid i.e. if it is not zonal-meridional grid you need to rotate the outputs.
+    
+    '''
+    # Coordinate names
+    if tcoord==None and ycoord==None and xcoord==None:
+        tcoord,ycoord,xcoord = data.dims
+    # Coordinate dimensions
+    nt = data[tcoord].shape[0]
+    if len(data[ycoord].shape)>1:
+        ny = data[ycoord].shape[0]
+        nx = data[xcoord].shape[1]
+    else:
+        ny = data[ycoord].shape[0]
+        nx = data[xcoord].shape[0]
+    #
+    Kx  = np.ones((len(Taus),ny,nx))*np.nan
+    Ky  = np.ones((len(Taus),ny,nx))*np.nan
+    Kxy = np.ones((len(Taus),ny,nx))*np.nan
+    U   = np.ones((len(Taus),ny,nx))*np.nan
+    V   = np.ones((len(Taus),ny,nx))*np.nan
+    R   = np.ones((len(Taus),ny,nx))*np.nan
+    DR  = np.ones((ny,nx))*np.nan
+    LONS = np.ones((ny,nx))*np.nan
+    LATS = np.ones((ny,nx))*np.nan
+    #
+    Stencil_size     = 5
+    Stencil_center   = 2
+    inversion_method = 'integral'
+    if Dt_secs==None:
+        Dt_secs = np.timedelta64(sla_dat[tcoord][1].values-sla_dat[tcoord][0].values,'s').astype('float')
+    #
+    #
+    GB_size=nt*ny*nx*4/1E9
+    if GB_size>max_GB:
+       Partition_rows = Partition_cols = int(GB_size/GB_max)/2
+    else:
+       Partition_rows = Partition_cols = 1
+    #
+    Block_row_size = int(np.ceil(ny/Partition_rows))
+    Block_col_size = int(np.ceil(nx/Partition_cols))
+    #
+    # MAIN LOOP OVER PARTITIONS
+    for b_row in range(Partition_rows):
+        rowStart = b_row*Block_row_size
+        for b_col in range(Partition_cols):
+            colStart  = b_col*Block_col_size
+            block_rows      = np.arange(rowStart-2,rowStart+Block_row_size+2).astype('int')
+            block_cols      = np.arange(colStart-2,colStart+Block_col_size+2).astype('int')
+            block_rows[ma.where(block_rows<0)]    = 0
+            block_rows[ma.where(block_rows>ny-1)] = ny-1
+            block_rows = np.unique(block_rows)
+            if wrap_around:
+                block_cols[ma.where(block_cols<0)]    = block_cols[ma.where(block_cols<0)]+nx
+                block_cols[ma.where(block_cols>nx-1)] = block_cols[ma.where(block_cols>nx-1)]-nx
+            else:
+                block_cols[ma.where(block_cols<0)]    = 0
+                block_cols[ma.where(block_cols>nx-1)] = nx-1
+                block_cols = np.unique(block_cols)
+            
+            x_grid = data[:,block_rows,block_cols].values
+            jj,ii  = np.where(np.isfinite(np.sum(x_grid,0)))
+            x_grid[:,jj,ii] = detrend(x_grid[:,jj,ii],axis=0)
+            x_grid = np.swapaxes(np.swapaxes(x_grid,0,2),0,1)
+            #
+            if len(data[ycoord].shape)>1:
+                block_lon = data[xcoord][block_rows,block_cols].values
+                block_lat = data[ycoord][block_rows,block_cols].values
+            else:
+                block_lon, block_lat = np.meshgrid(data[xcoord][block_cols].values,data[ycoord][block_rows].values)
+            #
+            block_num_lats   = len(block_rows);
+            block_num_lons   = len(block_cols);
+            block_num_samp   = nt
+            #
+            iinds,jinds = np.meshgrid(block_cols[2:-2],block_rows[2:-2])
+            jinds = jinds.flatten()
+            iinds = iinds.flatten()
+            #
+            for tt, Tau in enumerate(Taus):
+                 U_block,V_block,Kx_block,Ky_block,Kxy_block,Kyx_block,R_block,dr_block = inversion_new(x_grid, block_rows, block_cols, block_lon, block_lat, block_num_lons, block_num_lats, block_num_samp, Stencil_center, Stencil_size, Tau, Dt_secs, dr_in=np.zeros(1), degres=degres, inversion_method=inversion_method,num_cores=num_cores,radius=radius,interp_method=interp_method)
+                 Kx[tt,jinds,iinds]  = Kx_block.flatten()
+                 Ky[tt,jinds,iinds]  = Ky_block.flatten()
+                 Kxy[tt,jinds,iinds] = Ky_block.flatten()
+                 U[tt,jinds,iinds]   = U_block.flatten()
+                 V[tt,jinds,iinds]   = V_block.flatten()
+                 R[tt,jinds,iinds]   = R_block.flatten()
+                 if tt==0:
+                     DR[jinds,iinds]   = dr_block.flatten()
+                     LATS[jinds,iinds] = block_lat[2:-2,2:-2].flatten()
+                     LONS[jinds,iinds] = block_lon[2:-2,2:-2].flatten()
+    #
+    # CREATE A DICTIONARY FOR COMBINE_TAUS
+    data_in = {}
+    for key in ['Kx','Ky','Kxy','U','V','R']:
+        exec('data_in[key]='+key+'.squeeze()')
+    # COMBINE TAUS IF NEEDED
+    if len(Taus)>1 and combine_taus:
+        data_in=combine_Taus(data_in,None,Taus,K_lim=True,dx=DR,dy=DR,timeStep=Dt_secs)
+    # CREATE THE OUTPUT DATASET
+    # IF NOT A REGULAR GRID WILL PROVIDE LATITUDE AND LONGITUDE SEPARATELY, OTHERWISE AS COORDINATES
+    if len(data[ycoord].shape)>1:
+        coords = {'y': (['y'], np.arange(len(LATS[:,0]))),'x': (['x'], np.arange(len(LONS[0,:]))),}
+        for k,key in enumerate(['Kx','Ky','Kxy','U','V','R','LATS','LONS']):
+            if k==0:
+                data_out=xr.DataArray(data_in[key], coords=coords, dims=['y','x'], name=key).to_dataset()
+            else:
+                data_out.update(xr.DataArray(data_in[key], coords=coords, dims=['y','x'], name=key).to_dataset())    
+    else:
+        coords = {'lat': (['lat'], LATS[:,0]),'lon': (['lon'], LONS[0,:]),}
+        for k,key in enumerate(['Kx','Ky','Kxy','U','V','R']):
+            if k==0:
+                data_out=xr.DataArray(data_in[key], coords=coords, dims=['lat','lon'], name=key).to_dataset()
+            else:
+                data_out.update(xr.DataArray(data_in[key], coords=coords, dims=['lat','lon'], name=key).to_dataset())
+    #
+    return data_out       
+
 def fitEllipse(x,y):
     x = x[:,np.newaxis]
     y = y[:,np.newaxis]
@@ -1488,11 +1665,11 @@ def ellipse_axis_length( a ):
     res2=np.sqrt(up/down2)
     return np.array([res1, res2])
 
-def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=None):
+def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=None,dg=0.25):
     """
     Use the CFL criteria to limit Tau, at first choose the min dt (max speed) for each location.
     
-    INPUT DATA
+    Paramters
     ----------    
     data          : dict
                   Input data as dictionary which includes variables 
@@ -1510,8 +1687,10 @@ def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=N
                   Grid size in meridional direction (default is 0.25*111E3 which is 0.25 deg grid)
     timeStep      : float 
                   Time resolution of the data (default is 86400 seconds i.e. 1 day)
+    dg            : float, optional
+                  data resolution in degrees (default is 0.25), used to estimate dy, dx if they are not given explicitly
     
-    RETURNS
+    Returns
     -------
     dataout       : dict 
                   Output data as dictionary which includes variables 'U','V','Kx','Ky', and 'R'
@@ -1523,7 +1702,7 @@ def combine_Taus(datain,weight_coslat,Taus,K_lim=True,dx=None,dy=None,timeStep=N
     dy_const=False
     #
     if np.any(dy==None):
-        dy=0.25*111E3
+        dy=dg*111E3
     if np.any(dx==None):
         dx=weight_coslat*dy
     #
