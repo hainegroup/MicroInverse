@@ -1444,12 +1444,12 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
 
 def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=None, xcoord=None, max_GB=2, num_cores=18, inversion_method='integral', degres=10, dr_in=np.zeros(1), interp_method='griddata', radius=6371, wrap_around=True):
     '''
-    PLACE HOLDER FOR XARRAY WRAPPER
-    IDEA: CALL WITH XARRAY.DATA_ARRAY, 
-          PERFORM THE INVERSION,
-          POSSIBLY COMBINE_TAUS AS WELL.
-          RETURN XARRAY.
+    This is a wrapper for xarray.DataArray's, it will perform rotated inversion with possibility to run the combine_Taus function all at once. 
     
+    At minimum only xarray.DataArray and a list of lags is required, but it is also possible to define several parameters that will affect the inversion.
+    
+    Under the hood xinversion will call inversion_new to perform the inversion.
+        
     Parameters
     ----------
     data         : xarray.DataArray
