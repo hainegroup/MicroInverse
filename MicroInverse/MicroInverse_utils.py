@@ -1602,6 +1602,9 @@ def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=
     # CREATE THE OUTPUT DATASET
     # IF NOT A REGULAR GRID WILL PROVIDE LATITUDE AND LONGITUDE SEPARATELY, OTHERWISE AS COORDINATES
     if len(data[ycoord].shape)>1:
+        data_in['LATS']=LATS
+        data_in['LONS']=LONS
+        #
         coords = {'y': (['y'], np.arange(len(LATS[:,0]))),'x': (['x'], np.arange(len(LONS[0,:]))),}
         for k,key in enumerate(['Kx','Ky','Kxy','U','V','R','LATS','LONS']):
             if k==0:
