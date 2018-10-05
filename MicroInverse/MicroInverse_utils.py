@@ -1009,7 +1009,7 @@ def parallel_inversion(j,x_grid,block_vars,Stencil_center,Stencil_size,block_num
             if not (block_vars2 is None):
                 block_vars2[:len(bn),i,j] = bn 
 
-def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_samp, block_num_lats, block_num_lons, block_lat, block_lon, Tau, Dt_secs, block_vars2=None, dr_in=np.zeros(1), degres=10, inversion_method='integral',radius=6371, interp_method='griddata'):
+def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_samp, block_num_lats, block_num_lons, block_lat, block_lon, Tau, Dt_secs, block_vars2=None, dr_in=np.zeros(1), degres=10, inversion_method='integral',radius=6371, interp_method='griddata',latlon=True):
     """
     # Invert 2D data using a 5 point stencil. This function should be not be caller directly, instead call the inversion() function.
     # In contrast to the parallel_inversion function, the rotated_inversion function will interpolate the data to circle of radius dr
@@ -1025,6 +1025,10 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
                        could be also array of size 1 with constant dr in some idealized cases, or a array of the size of the domain with some latitude dependent values for example.
     
     Note that here again the j index refers to x direction and i index to y direction. Sorry for the confusing notation, it's legacy and I've been too lazy to change it.
+    
+    TODO
+    ----
+    ADD A POSSIBILITY TO DO UNROTATED INVERSION E.G SET DEGRES TO 0 OR 90 -> DO THE INTERPOLATION, BUT ONLY AT X,Y PLANE
     """
     # 4 - closest points
     sads = [-1,+1,-2,+2]
@@ -1061,17 +1065,24 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
             dx  = np.zeros(len(s_ads)+1) #this is the x (zonal) component of that
             dy  = np.zeros(len(s_ads)+1) #this is the y (meridional) component of that
             ang = np.zeros(len(s_ads)+1)
-            for s,ss in enumerate(s_ads):
-                ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
-                dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
-                dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000
+            if latlon:
+                for s,ss in enumerate(s_ads):
+                    ds[cent+ss] = distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                    dx[cent+ss] = np.sign(j_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib,jb],block_lon[ib+i_ads[s],jb+j_ads[s]]], radius=radius)*1000
+                    dy[cent+ss] = np.sign(i_ads[s])*distance([block_lat[ib,jb],block_lon[ib,jb]],[block_lat[ib+i_ads[s],jb+j_ads[s]],block_lon[ib,jb]], radius=radius)*1000
+            elif latlon==False:
+                 # in case you can give coordinates as kilometers right away - useful for idealized cases
+                 for s,ss in enumerate(s_ads):
+                    ds[cent+ss] = np.sqrt((block_lon[ib+i_ads[s],jb+j_ads[s]]-block_lon[ib,jb])**2+(block_lat[ib+i_ads[s],jb+j_ads[s]]-block_lat[ib,jb])**2)
+                    dx[cent+ss] = np.sign(j_ads[s])*abs(block_lon[ib+i_ads[s],jb+j_ads[s]]-block_lon[ib,jb])
+                    dy[cent+ss]=  np.sign(i_ads[s])*abs(block_lat[ib+i_ads[s],jb+j_ads[s]]-block_lat[ib,jb])
             # DEFINE A TARGET RADIUS - MAYBE BEST TO MAKE SURE IT'S REASONABLY FAR FROM THE CENTRAL POINT 
             # Probably a mean radius makes most sense in the end - should probably be close to the 'true' resolution of the data
             # i.e. not necessarely the resolution the data is provided.
             if len(dr_in.shape)==1 and dr_in[0] == 0:
                 dr = np.nanmean(ds[[cent-2,cent-1,cent+1,cent+2]])
                 dr = np.min([2*np.max(abs(dx[cent+np.array(sads)])),2*np.max(abs(dy[cent+np.array(sads)])),dr]) #make sure you're not outside the halo of 2 points
-            elif len(dr.shape)==1 and dr[0] != 0:
+            elif len(dr_in.shape)==1 and dr_in[0] != 0:
                 dr = dr_in[0]
             elif len(dr_in.shape)==2:
                 dr = dr_in[ib,jb]
@@ -1171,34 +1182,37 @@ def rotated_inversion(j, x_grid, bvar, Stencil_center, Stencil_size, block_num_s
                 bvar2[2,xx] = 1./2*dr**2*(bn[Stencil_center-1]+bn[Stencil_center+1]) # Kx
                 bvar2[3,xx] = 1./2*dr**2*(bn[Stencil_center-2]+bn[Stencil_center+2]) # Ky
                 bvar2[4,xx] = -1./np.nansum(bn) #bn[Stencil_center] #-1./np.nansum(bn) # R
-            # Find the full diffusion matrix - create_A gives rotation matrix AA (done outside the loop)
-            K     = np.vstack([bvar2[2,:],bvar2[3,:]]).T.flatten()
-            Kout  = np.dot(np.dot(np.linalg.inv(np.dot(AA.T,AA)),AA.T),K)
-            if False:
-                # Find the angle at which the off-diagonal is 0 - that is the angle at which the axis are oriented with the flow 
-                Kout2 = np.array([[Kout[0],Kout[-1]],[Kout[-1],Kout[1]]])
-                ro    = rot_m(np.radians(angles)) #the sign of the angles should be consistent with whatever the create_A was called with
-                Koffdiag = []
-                for a in range(ro.shape[-1]):
-                    # Koffdiag.append(abs(ro[:,:,a].T@Kout2@ro[:,:,a])[0,1]) # @ notation is python 3 specific
-                    Koffdiag.append(abs(np.dot(np.dot(ro[:,:,a].T,Kout2),ro[:,:,a]))[0,1]) # np.dot does the same for 2.7 
+            if na>1:
+                # Find the full diffusion matrix - create_A gives rotation matrix AA (done outside the loop)
+                K     = np.vstack([bvar2[2,:],bvar2[3,:]]).T.flatten()
+                Kout  = np.dot(np.dot(np.linalg.inv(np.dot(AA.T,AA)),AA.T),K)
+                if False:
+                    # Find the angle at which the off-diagonal is 0 - that is the angle at which the axis are oriented with the flow 
+                    Kout2 = np.array([[Kout[0],Kout[-1]],[Kout[-1],Kout[1]]])
+                    ro    = rot_m(np.radians(angles)) #the sign of the angles should be consistent with whatever the create_A was called with
+                    Koffdiag = []
+                    for a in range(ro.shape[-1]):
+                        # Koffdiag.append(abs(ro[:,:,a].T@Kout2@ro[:,:,a])[0,1]) # @ notation is python 3 specific
+                        Koffdiag.append(abs(np.dot(np.dot(ro[:,:,a].T,Kout2),ro[:,:,a]))[0,1]) # np.dot does the same for 2.7 
+                    #
+                    opta=np.where((Koffdiag)==np.min((Koffdiag)))[0][0]    
+                    #
+                    bvar[0,ib,jb] = bvar2[0,opta]*np.cos(np.radians(angles[opta]))-bvar2[1,opta]*np.sin(np.radians(angles[opta]))
+                    bvar[1,ib,jb] = bvar2[0,opta]*np.sin(np.radians(angles[opta]))+bvar2[1,opta]*np.cos(np.radians(angles[opta])) 
+                    bvar[5,ib,jb] = bvar2[4,opta] 
+                else:          
+                    bvar[0,ib,jb] = np.nanmedian(bvar2[0,:]*np.cos(np.radians(angles))-bvar2[1,:]*np.sin(np.radians(angles))) # rotate back to x-y plane
+                    bvar[1,ib,jb] = np.nanmedian(bvar2[0,:]*np.sin(np.radians(angles))+bvar2[1,:]*np.cos(np.radians(angles))) # rotate back to x-y plane
+                    bvar[5,ib,jb] = np.nanmedian(bvar2[4,:])
                 #
-                opta=np.where((Koffdiag)==np.min((Koffdiag)))[0][0]    
-                #
-                bvar[0,ib,jb] = bvar2[0,opta]*np.cos(np.radians(angles[opta]))-bvar2[1,opta]*np.sin(np.radians(angles[opta]))
-                bvar[1,ib,jb] = bvar2[0,opta]*np.sin(np.radians(angles[opta]))+bvar2[1,opta]*np.cos(np.radians(angles[opta])) 
-                bvar[5,ib,jb] = bvar2[4,opta] 
-            else:          
-                bvar[0,ib,jb] = np.nanmedian(bvar2[0,:]*np.cos(np.radians(angles))-bvar2[1,:]*np.sin(np.radians(angles))) # rotate back to x-y plane
-                bvar[1,ib,jb] = np.nanmedian(bvar2[0,:]*np.sin(np.radians(angles))+bvar2[1,:]*np.cos(np.radians(angles))) # rotate back to x-y plane
-                bvar[5,ib,jb] = np.nanmedian(bvar2[4,:])
-            #
-            bvar[2,ib,jb] = Kout[0]
-            bvar[3,ib,jb] = Kout[1]
-            bvar[4,ib,jb] = Kout[2]
+                bvar[2,ib,jb] = Kout[0]
+                bvar[3,ib,jb] = Kout[1]
+                bvar[4,ib,jb] = Kout[2]
+            else:
+                bvar[list([0,1,2,3,5]),ib,jb] = bvar2.squeeze()
 
 #
-def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,dr_in=np.zeros(1), degres=10, inversion_method='integral', num_cores=18,radius=6371, interp_method='griddata'):
+def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,dr_in=np.zeros(1), degres=10, inversion_method='integral', num_cores=18,radius=6371, interp_method='griddata',latlon=True):
     """
     New main function - made just for rotated_inversion 
     """
@@ -1217,7 +1231,7 @@ def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lon
     #
     print('rotated inversion')
     # note that we will have a halo of 2 cells
-    Parallel(n_jobs=num_cores)(delayed(rotated_inversion)(j, x_grid2, block_vars1, Stencil_center, Stencil_size, block_num_samp, block_num_lats, block_num_lons, block_lat, block_lon, Tau, Dt_secs, dr_in=dr_in, degres=degres, inversion_method=inversion_method, radius=radius, interp_method=interp_method) for j in range(2,block_num_lons-2))
+    Parallel(n_jobs=num_cores)(delayed(rotated_inversion)(j, x_grid2, block_vars1, Stencil_center, Stencil_size, block_num_samp, block_num_lats, block_num_lons, block_lat, block_lon, Tau, Dt_secs, dr_in=dr_in, degres=degres, inversion_method=inversion_method, radius=radius, interp_method=interp_method,latlon=latlon) for j in range(2,block_num_lons-2))
     U_ret   = np.array(block_vars1[0,2:-2,2:-2])
     V_ret   = np.array(block_vars1[1,2:-2,2:-2])
     Kx_ret  = np.array(block_vars1[2,2:-2,2:-2])
@@ -1442,7 +1456,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
     return U_ret,V_ret,Kx_ret,Ky_ret,Kxy_ret,Kyx_ret,R_ret,block_vars2[:Stencil_size,1:-1,1:-1]
 
 
-def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=None, xcoord=None, max_GB=2, num_cores=18, inversion_method='integral', degres=10, dr_in=np.zeros(1), interp_method='griddata', radius=6371, wrap_around=True):
+def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=None, xcoord=None, max_GB=2, num_cores=18, inversion_method='integral', degres=10, dr_in=np.zeros(1), interp_method='griddata', radius=6371, wrap_around=True,latlon=True,raw=False):
     '''
     This is a wrapper for xarray.DataArray's, it will perform rotated inversion with possibility to run the combine_Taus function all at once. 
     
@@ -1549,20 +1563,21 @@ def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=
             colStart  = b_col*Block_col_size
             block_rows      = np.arange(rowStart-2,rowStart+Block_row_size+2).astype('int')
             block_cols      = np.arange(colStart-2,colStart+Block_col_size+2).astype('int')
-            block_rows[ma.where(block_rows<0)]    = 0
-            block_rows[ma.where(block_rows>ny-1)] = ny-1
+            block_rows[np.where(block_rows<0)]    = 0
+            block_rows[np.where(block_rows>ny-1)] = ny-1
             block_rows = np.unique(block_rows)
             if wrap_around:
-                block_cols[ma.where(block_cols<0)]    = block_cols[ma.where(block_cols<0)]+nx
-                block_cols[ma.where(block_cols>nx-1)] = block_cols[ma.where(block_cols>nx-1)]-nx
+                block_cols[np.where(block_cols<0)]    = block_cols[np.where(block_cols<0)]+nx
+                block_cols[np.where(block_cols>nx-1)] = block_cols[np.where(block_cols>nx-1)]-nx
             else:
-                block_cols[ma.where(block_cols<0)]    = 0
-                block_cols[ma.where(block_cols>nx-1)] = nx-1
+                block_cols[np.where(block_cols<0)]    = 0
+                block_cols[np.where(block_cols>nx-1)] = nx-1
                 block_cols = np.unique(block_cols)
             
             x_grid = data[:,block_rows,block_cols].values
-            jj,ii  = np.where(np.isfinite(np.sum(x_grid,0)))
-            x_grid[:,jj,ii] = detrend(x_grid[:,jj,ii],axis=0)
+            if not raw:
+                jj,ii  = np.where(np.isfinite(np.sum(x_grid,0)))
+                x_grid[:,jj,ii] = detrend(x_grid[:,jj,ii],axis=0)
             x_grid = np.swapaxes(np.swapaxes(x_grid,0,2),0,1)
             #
             if len(data[ycoord].shape)>1:
@@ -1580,10 +1595,10 @@ def xinversion(data, Taus, Dt_secs=None, combine_taus=True, tcoord=None, ycoord=
             iinds = iinds.flatten()
             #
             for tt, Tau in enumerate(Taus):
-                 U_block,V_block,Kx_block,Ky_block,Kxy_block,Kyx_block,R_block,dr_block = inversion_new(x_grid, block_rows, block_cols, block_lon, block_lat, block_num_lons, block_num_lats, block_num_samp, Stencil_center, Stencil_size, Tau, Dt_secs, dr_in=np.zeros(1), degres=degres, inversion_method=inversion_method,num_cores=num_cores,radius=radius,interp_method=interp_method)
+                 U_block,V_block,Kx_block,Ky_block,Kxy_block,Kyx_block,R_block,dr_block = inversion_new(x_grid, block_rows, block_cols, block_lon, block_lat, block_num_lons, block_num_lats, block_num_samp, Stencil_center, Stencil_size, Tau, Dt_secs, dr_in=dr_in, degres=degres, inversion_method=inversion_method,num_cores=num_cores,radius=radius,interp_method=interp_method,latlon=latlon)
                  Kx[tt,jinds,iinds]  = Kx_block.flatten()
                  Ky[tt,jinds,iinds]  = Ky_block.flatten()
-                 Kxy[tt,jinds,iinds] = Ky_block.flatten()
+                 Kxy[tt,jinds,iinds] = Kxy_block.flatten()
                  U[tt,jinds,iinds]   = U_block.flatten()
                  V[tt,jinds,iinds]   = V_block.flatten()
                  R[tt,jinds,iinds]   = R_block.flatten()
