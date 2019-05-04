@@ -918,11 +918,11 @@ def parallel_monte_carlo_inversion(j,x_grid,block_vars,Stencil_center,Stencil_si
             # -- solve for U K and R from row of bn -- #
             ############################################
             #
-            block_vars[:,0,i,j] = -dx*np.nanpercentile(bn[Stencil_center+1,:]-bn[Stencil_center-1,:],percentiles) # u
-            block_vars[:,1,i,j] = -dy*np.nanpercentile(bn[Stencil_center+2,:]-bn[Stencil_center-2,:],percentiles) # v
-            block_vars[:,2,i,j] = 1./2*dx**2*np.nanpercentile(bn[Stencil_center+1,:]+bn[Stencil_center-1,:],percentiles) # Kx
-            block_vars[:,3,i,j] = 1./2*dy**2*np.nanpercentile(bn[Stencil_center+2,:]+bn[Stencil_center-2,:],percentiles) # Ky
-            block_vars[:,4,i,j] = np.nanpercentile(-1./np.nansum(bn,0),percentiles) # R
+            block_vars[:,0,i,j] = -dx*(bn[Stencil_center+1,:]-bn[Stencil_center-1,:]) #-dx*np.nanpercentile(bn[Stencil_center+1,:]-bn[Stencil_center-1,:],percentiles) # u
+            block_vars[:,1,i,j] = -dy*(bn[Stencil_center+2,:]-bn[Stencil_center-2,:]) #-dy*np.nanpercentile(bn[Stencil_center+2,:]-bn[Stencil_center-2,:],percentiles) # v
+            block_vars[:,2,i,j] = 1./2*dx**2*(bn[Stencil_center+1,:]+bn[Stencil_center-1,:]) #1./2*dx**2*np.nanpercentile(bn[Stencil_center+1,:]+bn[Stencil_center-1,:],percentiles) # Kx
+            block_vars[:,3,i,j] = 1./2*dy**2(bn[Stencil_center+2,:]+bn[Stencil_center-2,:]) #1./2*dy**2*np.nanpercentile(bn[Stencil_center+2,:]+bn[Stencil_center-2,:],percentiles) # Ky
+            block_vars[:,4,i,j] = -1./np.nansum(bn,0) #np.nanpercentile(-1./np.nansum(bn,0),percentiles) # R
             if not (block_vars2 is None):
                 block_vars2[:bn.shape[0],i,j] = np.nanmean(bn,1)
 
@@ -1379,7 +1379,7 @@ def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lon
     #
     return U_ret,V_ret,Kx_ret,Ky_ret,Kxy_ret,Kyx_ret,R_ret,dr_out
 
-def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, rotated=True, num_cores=18, radius=6371, dt_mins=5*365, ens=1, percentiles=[25,50,75]):
+def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, num_cores=18, radius=6371, dt_mins=5*365, ens=1, percentiles=[25,50,75]):
     """
     Invert gridded data using a local stencil. This function will setup variables and call the parallel_inversion function
     which will perform the actual inversion.
@@ -1471,7 +1471,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
             block_vars1=np.memmap(path11, dtype=np.float, shape=dumshape, mode='w+')
             block_vars2=np.memmap(path12, dtype=np.float, shape=dumshape, mode='w+')
         else:
-            dumshape1=(len(percentiles),Stencil_size+2,block_num_lats,block_num_lons)
+            dumshape1=(ens,Stencil_size+2,block_num_lats,block_num_lons)
             dumshape2=(Stencil_size+2,block_num_lats,block_num_lons)
             block_vars1=np.memmap(path11, dtype=np.float, shape=dumshape1, mode='w+')
             block_vars2=np.memmap(path12, dtype=np.float, shape=dumshape2, mode='w+')
