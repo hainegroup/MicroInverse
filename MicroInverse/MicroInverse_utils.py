@@ -811,6 +811,8 @@ def parallel_monte_carlo_inversion(j,x_grid,block_vars,Stencil_center,Stencil_si
     j_ads=[-1,+1, 0, 0,-1,+1,+1,-1,-2,-2,-2,+2,+2,+2,-1, 0,+1,+1,  0, -1, -2, +2, +2, -2]
     i_ads=[ 0, 0,-1,+1,-1,+1,-1,+1,+1, 0,-1,+1, 0,-1,-2,-2,-2,+2, +2, +2, -2, +2, -2, +2]
     #
+    tstep = (block_num_samp-dt_min)//ens
+    #
     for i in range(1,block_num_lats-1):
         numnebs=ma.sum(np.isfinite(x_grid[i+np.array(iads),j+np.array(jads),0]))
         if numnebs==len(sads):
@@ -895,13 +897,13 @@ def parallel_monte_carlo_inversion(j,x_grid,block_vars,Stencil_center,Stencil_si
                 for e in range(ens):
                     t0=e*tstep
                     t1=e*tstep+dt_min
-                    if nt-(t1+Tau)>=0:
-                        xnlag = xn_in[:,t0+Tau:t1+Tau]
+                    if block_num_samp-(t1+Tau)>=0:
+                        xnlag = xn[:,t0+Tau:t1+Tau]
                     else:
-                        xnlag=np.concatenate([xn_in[:,t0+Tau:t1+Tau], np.zeros((Stencil_size,(t1+Tau)-nt))],axis=1)
+                        xnlag=np.concatenate([xn[:,t0+Tau:t1+Tau], np.zeros((Stencil_size,(t1+Tau)-block_num_samp))],axis=1)
                     #
-                    a=np.dot(xnlag,xn_in[:,t0:t1].T)
-                    b=np.dot(xn_in[:,t0:t1],xn_in[:,t0:t1].T)
+                    a=np.dot(xnlag,xn[:,t0:t1].T)
+                    b=np.dot(xn[:,t0:t1],xn[:,t0:t1].T)
                     a[np.where(np.isnan(a))]=0
                     b[np.where(np.isnan(b))]=0
                     tmp = np.dot(a.data, np.linalg.pinv(b.data))
@@ -1377,7 +1379,7 @@ def inversion_new(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lon
     #
     return U_ret,V_ret,Kx_ret,Ky_ret,Kxy_ret,Kyx_ret,R_ret,dr_out
 
-def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, rotated=True, num_cores=18,radius=6371, dt_mins=5*365, ens=1, percentiles=[25,50,75]):
+def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,block_num_lats,block_num_samp,Stencil_center,Stencil_size,Tau,Dt_secs,inversion_method='integral',dx_const=None,dy_const=None, b_9points=False, rotate=False, rotated=True, num_cores=18, radius=6371, dt_mins=5*365, ens=1, percentiles=[25,50,75]):
     """
     Invert gridded data using a local stencil. This function will setup variables and call the parallel_inversion function
     which will perform the actual inversion.
@@ -1552,7 +1554,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
         Kx_ret=None
         Ky_ret=None
         block_vars2=np.array(block_vars2[:Stencil_size,1:-1,1:-1])
-    elif not rotate and ens==1:
+    elif (not rotate) and (ens==1):
         print('no rotation')
         Parallel(n_jobs=num_cores)(delayed(parallel_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean',radius=radius) for j in range(1,block_num_lons-1))
         #
@@ -1565,7 +1567,7 @@ def inversion(x_grid,block_rows,block_cols,block_lon,block_lat,block_num_lons,bl
         Kyx_ret = None
         block_vars2=np.array(block_vars2[:Stencil_size,1:-1,1:-1])
         #
-    elif not rotate and ens>1:
+    elif (not rotate) and (ens>1):
         print('ensemble inversion')
         Parallel(n_jobs=num_cores)(delayed(parallel_monte_carlo_inversion)(j,x_grid2,block_vars1,Stencil_center,Stencil_size,block_num_samp,block_num_lats,block_num_lons,block_lat,block_lon,Tau,Dt_secs, rot=False, block_vars2=block_vars2,inversion_method=inversion_method,dx_const=dx_const,dy_const=dy_const,DistType='mean',radius=radius,dt_min=dt_min, ens=ens, percentiles=percentiles) for j in range(1,block_num_lons-1))
         #
