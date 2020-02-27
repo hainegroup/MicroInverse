@@ -17,13 +17,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/AleksiNummelin/MicroInverse
+    $ git clone git://github.com/hainegroup/MicroInverse
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl  -OL https://github.com/AleksiNummelin/MicroInverse/tarball/master
+    $ curl  -OL https://github.com/hainegroup/MicroInverse/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -32,8 +32,8 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/AleksiNummelin/MicroInverse
-.. _tarball: https://github.com/AleksiNummelin/MicroInverse/tarball/master
+.. _Github repo: https://github.com/hainegroup/MicroInverse
+.. _tarball: https://github.com/hainegroup/MicroInverse/tarball/master
 
 Stable release
 --------------

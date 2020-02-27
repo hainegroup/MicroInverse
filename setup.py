@@ -50,7 +50,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='MicroInverse/tests',
     tests_require=test_requirements,
-    url='https://github.com/AleksiNummelin/MicroInverse',
+    url='https://github.com/hainegroup/MicroInverse',
     version='0.3.0',
     zip_safe=False,
 )
