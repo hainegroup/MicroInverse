@@ -6,8 +6,8 @@ MicroInverse
 .. image:: https://img.shields.io/pypi/v/MicroInverse.svg
         :target: https://pypi.python.org/pypi/MicroInverse
 
-.. image:: https://img.shields.io/travis/AleksiNummelin/MicroInverse.svg
-        :target: https://travis-ci.org/AleksiNummelin/MicroInverse
+.. image:: https://img.shields.io/travis/hainegroup/MicroInverse.svg
+        :target: https://travis-ci.com/hainegroup/MicroInverse
 
 .. image:: https://readthedocs.org/projects/microinverse/badge/?version=latest
         :target: https://MicroInverse.readthedocs.io/en/latest/?badge=latest

@@ -1,4 +1,4 @@
-# Config file for automatic testing at travis-ci.org
+# Config file for automatic testing at travis-ci.com
 sudo: false
 language: python
 python:
@@ -31,5 +31,5 @@ script:
 #    secure: PLEASE_REPLACE_ME
 #  on:
 #    tags: true
-#    repo: AleksiNummelin/MicroInverse
+#    repo: hainegroup/MicroInverse
 #    python: 2.7
